@@ -17,6 +17,7 @@ import { speechService, SpeechProgress } from "../services/speechService";
 const STORAGE_KEYS = {
   JOURNAL: "selah_devotional_journal_v1",
   COMPLETED_LESSONS: "selah_completed_lessons_v1",
+  LESSON_PROGRESS: "selah_lesson_progress_v1",
   BOOKMARKS: "selah_scripture_bookmarks_v1",
   FAVORITES: "selah_favorite_prayers_v1",
   SPEECH_RATE: "selah_speech_rate_v1",
@@ -72,6 +73,7 @@ interface DevotionalContextType {
   // Persistent storage state
   journalEntries: JournalEntry[];
   completedLessonIds: string[];
+  lessonProgress: Record<string, number>;
   bookmarkedScriptureIds: string[];
   favoriteEntryIds: string[];
 
@@ -85,6 +87,8 @@ interface DevotionalContextType {
   deleteJournalEntry: (id: string) => void;
   toggleFavoriteEntry: (id: string) => void;
   markLessonComplete: (lessonId: string) => void;
+  updateLessonProgress: (lessonId: string, percentage: number) => void;
+  getLessonProgress: (lessonId: string) => number;
   toggleBookmarkScripture: (scriptureId: string) => void;
   isLessonCompleted: (lessonId: string) => boolean;
   isScriptureBookmarked: (scriptureId: string) => boolean;
@@ -118,6 +122,16 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       console.warn("Failed to load completed lessons from localStorage:", e);
     }
     return [];
+  });
+
+  const [lessonProgress, setLessonProgress] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LESSON_PROGRESS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn("Failed to load lesson progress from localStorage:", e);
+    }
+    return {};
   });
 
   const [bookmarkedScriptureIds, setBookmarkedScriptureIds] = useState<string[]>(() => {
@@ -156,6 +170,14 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       console.warn("Error saving completed lessons to localStorage:", e);
     }
   }, [completedLessonIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.LESSON_PROGRESS, JSON.stringify(lessonProgress));
+    } catch (e) {
+      console.warn("Error saving lesson progress to localStorage:", e);
+    }
+  }, [lessonProgress]);
 
   useEffect(() => {
     try {
@@ -198,6 +220,14 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       track.fullText,
       (prog) => {
         setProgress(prog);
+        // If track is a lesson, update progress dynamically
+        setLessonProgress((prev) => {
+          const current = prev[track.id] || 0;
+          if (prog.percentage > current) {
+            return { ...prev, [track.id]: prog.percentage };
+          }
+          return prev;
+        });
       },
       (isPlaying, isPaused) => {
         if (isPaused) {
@@ -211,6 +241,12 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       () => {
         setPlaybackState("idle");
         setProgress((prev) => (prev ? { ...prev, percentage: 100 } : null));
+        // Mark lesson as completed on finish
+        setLessonProgress((prev) => ({ ...prev, [track.id]: 100 }));
+        setCompletedLessonIds((prev) => {
+          if (prev.includes(track.id)) return prev;
+          return [...prev, track.id];
+        });
       }
     );
   }, []);
@@ -295,7 +331,24 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       if (prev.includes(lessonId)) return prev;
       return [...prev, lessonId];
     });
+    setLessonProgress((prev) => ({ ...prev, [lessonId]: 100 }));
   }, []);
+
+  const updateLessonProgress = useCallback((lessonId: string, percentage: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(percentage)));
+    setLessonProgress((prev) => ({ ...prev, [lessonId]: clamped }));
+    if (clamped === 100) {
+      setCompletedLessonIds((prev) => (prev.includes(lessonId) ? prev : [...prev, lessonId]));
+    }
+  }, []);
+
+  const getLessonProgress = useCallback(
+    (lessonId: string) => {
+      if (completedLessonIds.includes(lessonId)) return 100;
+      return lessonProgress[lessonId] || 0;
+    },
+    [completedLessonIds, lessonProgress]
+  );
 
   const toggleBookmarkScripture = useCallback((scriptureId: string) => {
     setBookmarkedScriptureIds((prev) => {
@@ -329,12 +382,15 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
         skipBackward,
         journalEntries,
         completedLessonIds,
+        lessonProgress,
         bookmarkedScriptureIds,
         favoriteEntryIds,
         addJournalEntry,
         deleteJournalEntry,
         toggleFavoriteEntry,
         markLessonComplete,
+        updateLessonProgress,
+        getLessonProgress,
         toggleBookmarkScripture,
         isLessonCompleted,
         isScriptureBookmarked,

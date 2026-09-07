@@ -10,15 +10,21 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
+  Bookmark,
+  Sparkles,
+  Quote,
 } from "lucide-react";
 import { useDevotional } from "../context/DevotionalContext";
 import { LESSONS } from "../data/lessonsData";
 import { SCRIPTURE_STUDIES } from "../data/scripturesData";
+import { triggerHaptic } from "../utils/haptics";
 
 interface JournalArchiveViewProps {
   onOpenPlayer: () => void;
   onOpenLesson: (lessonId: string) => void;
 }
+
+type ArchiveTab = "prayers" | "favorites" | "disciplines";
 
 export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
   onOpenPlayer,
@@ -33,15 +39,30 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
     playTrack,
   } = useDevotional();
 
-  const [activeTab, setActiveTab] = useState<"prayers" | "disciplines">("prayers");
-  const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
+  const [activeTab, setActiveTab] = useState<ArchiveTab>("prayers");
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
-  const displayedEntries = filterOnlyFavorites
-    ? journalEntries.filter((e) => favoriteEntryIds.includes(e.id))
-    : journalEntries;
+  const favoriteEntries = journalEntries.filter((e) => favoriteEntryIds.includes(e.id));
+
+  const handleTabChange = (tab: ArchiveTab) => {
+    triggerHaptic("selection");
+    setActiveTab(tab);
+  };
+
+  const handleToggleBookmark = (entryId: string) => {
+    triggerHaptic("success");
+    toggleFavoriteEntry(entryId);
+  };
+
+  const handleDelete = (entryId: string) => {
+    triggerHaptic("warning");
+    if (window.confirm("Remove this entry from your spiritual journal?")) {
+      deleteJournalEntry(entryId);
+    }
+  };
 
   const handleListenToSavedPrayer = (entry: any) => {
+    triggerHaptic("medium");
     const speechScript = `Saved Devotional Entry. Reflection: ${entry.feelings}. Pastoral Counsel: ${entry.guidance.pastoralCounsel}. Scripture Promise: ${entry.guidance.scriptures
       .map((s: any) => `${s.reference}, ${s.text}`)
       .join(". ")}. Custom Prayer: ${entry.guidance.customPrayer}. Breath Prayer: ${entry.guidance.breathPrayer}`;
@@ -74,72 +95,83 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#232938]">
-          <div className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center">
+          <div
+            onClick={() => handleTabChange("prayers")}
+            className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center cursor-pointer hover:border-[#d4af37]/40 transition-colors"
+          >
             <span className="text-sm font-bold text-[#e5c158] block">
               {journalEntries.length}
             </span>
             <span className="text-[10px] text-[#8e897a] uppercase">Prayers</span>
           </div>
-          <div className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center">
+          <div
+            onClick={() => handleTabChange("favorites")}
+            className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center cursor-pointer hover:border-[#d4af37]/40 transition-colors"
+          >
+            <span className="text-sm font-bold text-[#f3d37a] block">
+              {favoriteEntries.length}
+            </span>
+            <span className="text-[10px] text-[#8e897a] uppercase">Favorites</span>
+          </div>
+          <div
+            onClick={() => handleTabChange("disciplines")}
+            className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center cursor-pointer hover:border-[#d4af37]/40 transition-colors"
+          >
             <span className="text-sm font-bold text-[#58a66f] block">
               {completedLessonIds.length}
             </span>
             <span className="text-[10px] text-[#8e897a] uppercase">Completed</span>
           </div>
-          <div className="p-2 rounded-xl bg-[#11141d] border border-[#212737] text-center">
-            <span className="text-sm font-bold text-[#8cd6b3] block">
-              {bookmarkedScriptureIds.length}
-            </span>
-            <span className="text-[10px] text-[#8e897a] uppercase">Scriptures</span>
-          </div>
         </div>
       </div>
 
-      {/* View Switcher Tabs */}
-      <div className="flex rounded-2xl bg-[#12151e] border border-[#242b3b] p-1">
+      {/* View Switcher Tabs with Dedicated Favorites Section */}
+      <div className="flex rounded-2xl bg-[#12151e] border border-[#242b3b] p-1 gap-1">
         <button
-          onClick={() => setActiveTab("prayers")}
-          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+          id="archive-tab-prayers"
+          onClick={() => handleTabChange("prayers")}
+          className={`flex-1 py-2 px-1 rounded-xl text-xs font-semibold transition-all ${
             activeTab === "prayers"
               ? "bg-[#1c2232] text-[#e5c158] shadow"
               : "text-[#8e897a] hover:text-white"
           }`}
         >
-          Saved Prayers ({journalEntries.length})
+          All Prayers ({journalEntries.length})
         </button>
         <button
-          onClick={() => setActiveTab("disciplines")}
-          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+          id="archive-tab-favorites"
+          onClick={() => handleTabChange("favorites")}
+          className={`flex-1 py-2 px-1 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1 ${
+            activeTab === "favorites"
+              ? "bg-[#252012] text-[#f3d37a] border border-[#d4af37]/40 shadow"
+              : "text-[#8e897a] hover:text-[#f3d37a]"
+          }`}
+        >
+          <Star className={`w-3 h-3 ${favoriteEntries.length > 0 ? "fill-currentColor text-[#e5c158]" : ""}`} />
+          <span>Favorites ({favoriteEntries.length})</span>
+        </button>
+        <button
+          id="archive-tab-disciplines"
+          onClick={() => handleTabChange("disciplines")}
+          className={`flex-1 py-2 px-1 rounded-xl text-xs font-semibold transition-all ${
             activeTab === "disciplines"
               ? "bg-[#1c2232] text-[#e5c158] shadow"
               : "text-[#8e897a] hover:text-white"
           }`}
         >
-          Completed Lessons &amp; Studies
+          Disciplines
         </button>
       </div>
 
-      {activeTab === "prayers" ? (
+      {/* Tab 1: All Prayers */}
+      {activeTab === "prayers" && (
         <div className="space-y-3">
-          {/* Filter Bar */}
-          <div className="flex items-center justify-between px-1">
-            <button
-              onClick={() => setFilterOnlyFavorites(!filterOnlyFavorites)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 transition-colors ${
-                filterOnlyFavorites
-                  ? "bg-[#272111] text-[#e5c158] border-[#e5c158]"
-                  : "bg-[#141721] text-[#9b9484] border-[#252c3c]"
-              }`}
-            >
-              <Star className="w-3 h-3 fill-currentColor" />
-              <span>{filterOnlyFavorites ? "Showing Favorites" : "Filter Favorites"}</span>
-            </button>
-            <span className="text-[11px] text-[#7c7769]">
-              {displayedEntries.length} {displayedEntries.length === 1 ? "entry" : "entries"}
-            </span>
+          <div className="flex items-center justify-between px-1 text-xs text-[#8e897a]">
+            <span>Recent Reflections &amp; Prayers</span>
+            <span>{journalEntries.length} entries</span>
           </div>
 
-          {displayedEntries.length === 0 ? (
+          {journalEntries.length === 0 ? (
             <div className="p-8 rounded-3xl bg-[#12151e] border border-[#242b3b] text-center space-y-2">
               <Heart className="w-8 h-8 text-[#5c5647] mx-auto" />
               <h3 className="font-display-title text-sm font-semibold text-[#c5c0b0]">
@@ -150,17 +182,23 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
               </p>
             </div>
           ) : (
-            displayedEntries.map((entry) => {
+            journalEntries.map((entry) => {
               const isFavorite = favoriteEntryIds.includes(entry.id);
               const isExpanded = expandedEntryId === entry.id;
 
               return (
                 <div
                   key={entry.id}
-                  className="rounded-3xl bg-[#12151e] border border-[#232a3a] overflow-hidden shadow-sm transition-all"
+                  id={`journal-card-${entry.id}`}
+                  className={`rounded-3xl bg-[#12151e] border overflow-hidden shadow-sm transition-all ${
+                    isFavorite ? "border-[#d4af37]/40" : "border-[#232a3a]"
+                  }`}
                 >
                   <div
-                    onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
+                    onClick={() => {
+                      triggerHaptic("selection");
+                      setExpandedEntryId(isExpanded ? null : entry.id);
+                    }}
                     className="p-4 cursor-pointer bg-gradient-to-b from-[#161a25] to-[#12151e]"
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -175,24 +213,29 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
                       </div>
 
                       <div className="flex items-center space-x-1">
+                        {/* Bookmark / Favorite button */}
                         <button
+                          id={`bookmark-btn-${entry.id}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleFavoriteEntry(entry.id);
+                            handleToggleBookmark(entry.id);
                           }}
                           className={`p-1.5 rounded-full transition-colors ${
-                            isFavorite ? "text-[#e5c158]" : "text-[#555043] hover:text-white"
+                            isFavorite
+                              ? "text-[#e5c158] bg-[#292212]"
+                              : "text-[#6b6555] hover:text-[#e5c158] hover:bg-[#1a202d]"
                           }`}
-                          aria-label="Favorite prayer"
+                          title={isFavorite ? "Remove from favorites" : "Bookmark this prayer"}
+                          aria-label={isFavorite ? "Remove from favorites" : "Bookmark this prayer"}
                         >
                           <Star className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} />
                         </button>
+
                         <button
+                          id={`delete-btn-${entry.id}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm("Remove this entry from your spiritual journal?")) {
-                              deleteJournalEntry(entry.id);
-                            }
+                            handleDelete(entry.id);
                           }}
                           className="p-1.5 text-[#555043] hover:text-red-400 rounded-full"
                           aria-label="Delete entry"
@@ -268,8 +311,115 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
             })
           )}
         </div>
-      ) : (
-        /* Completed Lessons & Bookmarked Scriptures */
+      )}
+
+      {/* Tab 2: Dedicated Favorites Section */}
+      {activeTab === "favorites" && (
+        <div className="space-y-3" id="favorites-section">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#211b0e] to-[#151720] border border-[#d4af37]/40">
+            <div className="flex items-center space-x-2 text-[#e5c158] mb-1">
+              <Star className="w-4 h-4 fill-currentColor" />
+              <h3 className="font-display-title text-sm font-bold tracking-wide">
+                Bookmarked Prayers &amp; Insights
+              </h3>
+            </div>
+            <p className="text-xs text-[#c5c0b0] font-serif-reading">
+              Sacred prayers and theological insights you have bookmarked for repeated meditation during walks, quiet hours, or work.
+            </p>
+          </div>
+
+          {favoriteEntries.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-[#12151e] border border-[#242b3b] text-center space-y-3">
+              <Star className="w-8 h-8 text-[#5c5647] mx-auto" />
+              <h3 className="font-display-title text-sm font-semibold text-[#c5c0b0]">
+                No Bookmarked Prayers Yet
+              </h3>
+              <p className="text-xs text-[#8e897a] font-serif-reading max-w-xs mx-auto">
+                Tap the star icon on any prayer in the "All Prayers" list or generate new prayers in the Notepad to save them here for quick meditation.
+              </p>
+              <button
+                onClick={() => handleTabChange("prayers")}
+                className="mt-2 inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#1a202d] text-[#e5c158] border border-[#d4af37]/30 hover:bg-[#252e42]"
+              >
+                <span>Browse All Prayers</span>
+              </button>
+            </div>
+          ) : (
+            favoriteEntries.map((entry) => (
+              <div
+                key={entry.id}
+                id={`favorite-card-${entry.id}`}
+                className="rounded-3xl bg-gradient-to-b from-[#171b26] to-[#11141c] border border-[#d4af37]/40 p-4 space-y-3 shadow-md"
+              >
+                {/* Header row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#272111] text-[#f3d37a] border border-[#d4af37]/30">
+                      {entry.emotionTag}
+                    </span>
+                    <span className="text-[11px] text-[#7c7769]">
+                      {new Date(entry.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleBookmark(entry.id)}
+                    className="flex items-center space-x-1 text-xs text-[#e5c158] bg-[#211c0f] px-2.5 py-1 rounded-full border border-[#d4af37]/30 hover:bg-[#2d2514]"
+                    title="Remove from bookmarks"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-currentColor" />
+                    <span>Bookmarked</span>
+                  </button>
+                </div>
+
+                {/* Original Reflection */}
+                <div className="p-2.5 rounded-xl bg-[#0c0e12]/60 border border-[#212735]">
+                  <span className="text-[10px] uppercase tracking-wider text-[#8e897a] block mb-0.5">
+                    Your Reflection
+                  </span>
+                  <p className="text-xs font-serif-reading italic text-[#e8e4d8]">
+                    "{entry.feelings}"
+                  </p>
+                </div>
+
+                {/* Custom Anointed Prayer Highlight */}
+                <div className="p-3.5 rounded-2xl bg-[#141824] border-l-4 border-[#d4af37] border-y border-r border-[#262c3b] space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold text-[#e5c158] flex items-center">
+                    <Quote className="w-3 h-3 mr-1" /> Custom Prayer
+                  </span>
+                  <p className="text-xs font-serif-reading italic text-[#f7edd4] leading-relaxed whitespace-pre-line">
+                    "{entry.guidance.customPrayer}"
+                  </p>
+                </div>
+
+                {/* Breath Prayer */}
+                <div className="p-2 rounded-xl bg-[#0e1118] border border-[#232a3a] text-center">
+                  <span className="text-[9px] uppercase font-bold text-[#d4af37] block mb-0.5">
+                    Contemplative Breath Prayer
+                  </span>
+                  <p className="text-xs font-serif-reading italic text-[#d8d3c5]">
+                    {entry.guidance.breathPrayer}
+                  </p>
+                </div>
+
+                {/* Listen Action */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => handleListenToSavedPrayer(entry)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59e2b] text-[#0d1017] font-semibold text-xs flex items-center justify-center space-x-1.5 shadow active:scale-[0.98] transition-transform"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-currentColor" />
+                    <span>Listen to Prayer (TTS)</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Completed Lessons & Bookmarked Scriptures */}
+      {activeTab === "disciplines" && (
         <div className="space-y-4">
           {/* Completed Lessons Section */}
           <div className="space-y-2">
@@ -341,3 +491,4 @@ export const JournalArchiveView: React.FC<JournalArchiveViewProps> = ({
     </div>
   );
 };
+

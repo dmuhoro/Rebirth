@@ -91,3 +91,14 @@ export interface ActiveAudioTrack {
 }
 
 export type PlaybackState = "idle" | "playing" | "paused";
+
+export interface DailyContemplation {
+  id: string;
+  reference: string;
+  text: string;
+  theme: TheologicalTheme;
+  themeLabel: string;
+  reflectionPrompt: string;
+  christologicalFocus: string;
+  dateStr?: string;
+}

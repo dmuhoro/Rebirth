@@ -104,7 +104,141 @@ const FALLBACK_RESPONSES = {
   },
 };
 
-// API: Generate Spiritual Guidance, Custom Prayer & Scripture
+// Curated daily contemplations rotating by day across the 3 core themes
+const ROTATING_DAILY_CONTEMPLATIONS = [
+  {
+    id: "daily-john-15-5",
+    reference: "John 15:5",
+    text: "I am the vine; you are the branches. Whoever abides in me and I in him, he it is that bears much fruit, for apart from me you can do nothing.",
+    theme: "spiritual_strength",
+    themeLabel: "Spiritual Strength & Abiding",
+    reflectionPrompt: "Where have you been striving in self-effort rather than drawing quiet spiritual life from Christ the Vine?",
+    christologicalFocus: "Jesus is our organic life source; true strength is relational dependence rather than human willpower.",
+  },
+  {
+    id: "daily-isaiah-40-31",
+    reference: "Isaiah 40:31",
+    text: "They who wait for the LORD shall renew their strength; they shall mount up with wings like eagles; they shall run and not be weary; they shall walk and not faint.",
+    theme: "spiritual_strength",
+    themeLabel: "Spiritual Strength & Qavah",
+    reflectionPrompt: "What finite weight can you surrender today in exchange for Yahweh's uncreated endurance?",
+    christologicalFocus: "Waiting is intertwining our frailty with God's resurrected power.",
+  },
+  {
+    id: "daily-ezekiel-36-26",
+    reference: "Ezekiel 36:26",
+    text: "And I will give you a new heart, and a new spirit I will put within you. And I will remove the heart of stone from your flesh and give you a heart of flesh.",
+    theme: "repentance_transformation",
+    themeLabel: "Repentance & Inner Transformation",
+    reflectionPrompt: "What areas of hardness or legalistic cynicism are ready to be melted into a responsive heart of flesh?",
+    christologicalFocus: "New Covenant regeneration replaces religious externalism with the living pulse of the Spirit.",
+  },
+  {
+    id: "daily-romans-8-1",
+    reference: "Romans 8:1",
+    text: "There is therefore now no condemnation for those who are in Christ Jesus. For the law of the Spirit of life has set you free in Christ Jesus from the law of sin and death.",
+    theme: "repentance_transformation",
+    themeLabel: "Grace Over Condemnation",
+    reflectionPrompt: "How can resting in the complete absolution of the Cross silence your lingering inner accusations today?",
+    christologicalFocus: "Christ bore every drop of holy wrath so that we might walk in unhindered filial love with the Father.",
+  },
+  {
+    id: "daily-colossians-1-17",
+    reference: "Colossians 1:17",
+    text: "And he is before all things, and in him all things hold together.",
+    theme: "divinity_of_christ",
+    themeLabel: "Divinity of Christ & Cosmic Lordship",
+    reflectionPrompt: "If the eternal Son holds every galaxy together, how safely can you entrust your current anxieties into His sovereign hands?",
+    christologicalFocus: "Jesus is the cosmic Sustainer of reality, holding our fragile lives in unbroken coherence.",
+  },
+  {
+    id: "daily-john-1-14",
+    reference: "John 1:14",
+    text: "And the Word became flesh and dwelt among us, and we have seen his glory, glory as of the only Son from the Father, full of grace and truth.",
+    theme: "divinity_of_christ",
+    themeLabel: "The Incarnate Logos",
+    reflectionPrompt: "Contemplate the awe of the infinite Creator stooping down into human fragility out of profound love for you.",
+    christologicalFocus: "The uncreated Logos made Himself vulnerable to become the absolute Bridge between heaven and earth.",
+  },
+  {
+    id: "daily-psalm-51-10",
+    reference: "Psalm 51:10",
+    text: "Create in me a clean heart, O God, and renew a right spirit within me.",
+    theme: "repentance_transformation",
+    themeLabel: "Clean Heart & Metanoia",
+    reflectionPrompt: "Ask the Lord to perform a fresh creation (bara) inside your spirit where human reform falls short.",
+    christologicalFocus: "Only the Divine Creator can create ex nihilo a pure heart washed by Christ's blood.",
+  },
+];
+
+// API: Get Daily Contemplation (rotating by date, or fresh AI generation)
+app.get("/api/daily-contemplation", async (req, res) => {
+  try {
+    const today = new Date();
+    const dayOfYear = Math.floor(
+      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
+    );
+    const selectedIndex = dayOfYear % ROTATING_DAILY_CONTEMPLATIONS.length;
+    const baseContemplation = ROTATING_DAILY_CONTEMPLATIONS[selectedIndex];
+
+    // Check if client requested a fresh AI-generated daily verse
+    const forceAI = req.query.fresh === "true";
+    const ai = getGenAI();
+
+    if (forceAI && ai) {
+      try {
+        const themeChoices = ["spiritual_strength", "repentance_transformation", "divinity_of_christ"];
+        const chosenTheme = themeChoices[Math.floor(Math.random() * themeChoices.length)];
+
+        const prompt = `Generate a single profound, contemplative Christian daily verse reflection.
+Core theme: ${chosenTheme} (Themes: 1. Reclaiming Spiritual Strength through waiting and abiding; 2. Repentance and inner transformation from stony heart to heart of flesh; 3. Exploring the Divinity of Christ as the eternal Logos and sole Bridge to the Father).
+Provide a single scripture with reference, full text, theme, themeLabel, a 1-2 sentence piercing reflectionPrompt that invites prayerful contemplation, and a 1-sentence christologicalFocus.`;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                reference: { type: Type.STRING },
+                text: { type: Type.STRING },
+                theme: { type: Type.STRING },
+                themeLabel: { type: Type.STRING },
+                reflectionPrompt: { type: Type.STRING },
+                christologicalFocus: { type: Type.STRING },
+              },
+              required: ["reference", "text", "theme", "themeLabel", "reflectionPrompt", "christologicalFocus"],
+            },
+          },
+        });
+
+        if (response.text) {
+          const generated = JSON.parse(response.text);
+          return res.json({
+            id: `ai-daily-${Date.now()}`,
+            dateStr: today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
+            ...generated,
+            isAIGenerated: true,
+          });
+        }
+      } catch (aiErr) {
+        console.warn("AI generation failed for daily contemplation, using curated:", aiErr);
+      }
+    }
+
+    return res.json({
+      ...baseContemplation,
+      dateStr: today.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
+      isAIGenerated: false,
+    });
+  } catch (error) {
+    console.error("Error in /api/daily-contemplation:", error);
+    res.status(500).json({ error: "Failed to retrieve daily contemplation" });
+  }
+});
 app.post("/api/spiritual-guidance", async (req, res) => {
   try {
     const { entryText, theme, emotion } = req.body;

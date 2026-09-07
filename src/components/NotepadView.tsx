@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   PenLine,
@@ -12,13 +12,19 @@ import {
   Loader2,
   AlertCircle,
   HelpCircle,
+  Star,
+  Quote,
 } from "lucide-react";
 import { TheologicalTheme, AIGeneratedGuidance } from "../types";
 import { useDevotional } from "../context/DevotionalContext";
+import { triggerHaptic } from "../utils/haptics";
 
 interface NotepadViewProps {
   onOpenPlayer: () => void;
   onNavigateToJournal: () => void;
+  initialVersePrompt?: string | null;
+  initialTheme?: TheologicalTheme | null;
+  onClearInitialPrompt?: () => void;
 }
 
 const EMOTION_CHIPS = [
@@ -39,8 +45,11 @@ const SAMPLE_PROMPTS = [
 export const NotepadView: React.FC<NotepadViewProps> = ({
   onOpenPlayer,
   onNavigateToJournal,
+  initialVersePrompt,
+  initialTheme,
+  onClearInitialPrompt,
 }) => {
-  const { playTrack, addJournalEntry } = useDevotional();
+  const { playTrack, addJournalEntry, toggleFavoriteEntry, favoriteEntryIds } = useDevotional();
 
   const [feelingsText, setFeelingsText] = useState("");
   const [selectedEmotion, setSelectedEmotion] = useState("Weary & Faint");
@@ -52,14 +61,34 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
+  // Pre-populate when initialVersePrompt is passed from Daily Contemplation
+  useEffect(() => {
+    if (initialVersePrompt) {
+      setFeelingsText(initialVersePrompt);
+      if (initialTheme) {
+        setSelectedTheme(initialTheme);
+        if (initialTheme === "spiritual_strength") setSelectedEmotion("Weary & Faint");
+        else if (initialTheme === "repentance_transformation") setSelectedEmotion("Contrite / Seeking Cleansing");
+        else if (initialTheme === "divinity_of_christ") setSelectedEmotion("Seeking Awe of Christ");
+      }
+    }
+  }, [initialVersePrompt, initialTheme]);
+
   const handleSelectEmotion = (label: string, defaultTheme: TheologicalTheme) => {
+    triggerHaptic("selection");
     setSelectedEmotion(label);
     setSelectedTheme(defaultTheme);
+  };
+
+  const handleSelectTheme = (thId: TheologicalTheme) => {
+    triggerHaptic("selection");
+    setSelectedTheme(thId);
   };
 
   const handleGenerate = async () => {
     if (!feelingsText.trim()) return;
 
+    triggerHaptic("medium");
     setLoading(true);
     setErrorNotice(null);
     setSavedEntryId(null);
@@ -90,16 +119,27 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
         data
       );
       setSavedEntryId(created.id);
+      triggerHaptic("success");
     } catch (err: any) {
       console.error("Error generating guidance:", err);
       setErrorNotice("Could not connect to AI service. Using grounded theological counsel.");
+      triggerHaptic("warning");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleToggleBookmark = () => {
+    if (!savedEntryId) return;
+    triggerHaptic("success");
+    toggleFavoriteEntry(savedEntryId);
+  };
+
+  const isSavedEntryFavorite = savedEntryId ? favoriteEntryIds.includes(savedEntryId) : false;
+
   const handleListenToPrayer = () => {
     if (!guidanceResult) return;
+    triggerHaptic("medium");
 
     const speechScript = `A Contemplative Prayer for your soul. Pastoral Counsel: ${guidanceResult.pastoralCounsel}. Scriptures of Assurance: ${guidanceResult.scriptures
       .map((s) => `${s.reference}: ${s.text}. ${s.theologicalContext}`)
@@ -131,6 +171,35 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
           Log your honest weariness, repentance, or longing. Our Christological AI assistant will formulate custom New Covenant prayers and scriptures.
         </p>
       </div>
+
+      {/* Pre-populated Daily Verse Alert Banner */}
+      {initialVersePrompt && (
+        <div className="p-3.5 rounded-2xl bg-[#1e1b12] border border-[#d4af37]/40 flex items-start justify-between gap-2 shadow-sm">
+          <div className="flex items-start space-x-2">
+            <Quote className="w-4 h-4 text-[#e5c158] mt-0.5 flex-shrink-0" />
+            <div>
+              <span className="text-[11px] font-bold text-[#e5c158] uppercase tracking-wider block">
+                Reflecting on Daily Contemplation
+              </span>
+              <p className="text-xs text-[#c9c4b7] font-serif-reading mt-0.5">
+                Pre-populated from today's Scripture. Add your personal reflections below and tap Generate.
+              </p>
+            </div>
+          </div>
+          {onClearInitialPrompt && (
+            <button
+              onClick={() => {
+                triggerHaptic("selection");
+                onClearInitialPrompt();
+                setFeelingsText("");
+              }}
+              className="text-[11px] text-[#9b9484] hover:text-[#f7f4ec] px-2 py-0.5 rounded bg-[#2b2518]"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Emotion Quick Chips */}
       <div>
@@ -170,7 +239,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
           ].map((th) => (
             <button
               key={th.id}
-              onClick={() => setSelectedTheme(th.id as TheologicalTheme)}
+              onClick={() => handleSelectTheme(th.id as TheologicalTheme)}
               className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between transition-colors ${
                 selectedTheme === th.id
                   ? "bg-[#1c2230] border-[#d4af37] text-[#f7f4ec]"
@@ -196,7 +265,11 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
           </label>
           {feelingsText.length > 0 && (
             <button
-              onClick={() => setFeelingsText("")}
+              onClick={() => {
+                triggerHaptic("selection");
+                setFeelingsText("");
+                if (onClearInitialPrompt) onClearInitialPrompt();
+              }}
               className="text-[11px] text-[#7c7769] hover:text-red-400"
             >
               Clear
@@ -205,6 +278,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
         </div>
 
         <textarea
+          id="notepad-feelings-input"
           rows={5}
           value={feelingsText}
           onChange={(e) => setFeelingsText(e.target.value)}
@@ -221,7 +295,10 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
             {SAMPLE_PROMPTS.map((prompt, pIdx) => (
               <button
                 key={pIdx}
-                onClick={() => setFeelingsText(prompt)}
+                onClick={() => {
+                  triggerHaptic("selection");
+                  setFeelingsText(prompt);
+                }}
                 className="text-[11px] text-left text-[#9b9484] hover:text-[#e5c158] font-serif-reading italic block w-full truncate"
               >
                 • "{prompt}"
@@ -233,6 +310,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
 
       {/* Generate Action Button */}
       <button
+        id="notepad-generate-btn"
         disabled={loading || feelingsText.trim().length === 0}
         onClick={handleGenerate}
         className={`w-full py-3.5 px-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-lg transition-all active:scale-95 ${
@@ -268,11 +346,28 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-[#d4af37] flex items-center">
               <Sparkles className="w-3.5 h-3.5 mr-1" /> Custom Devotional Counsel
             </span>
-            {savedEntryId && (
-              <span className="text-[11px] text-[#58a66f] flex items-center">
-                <Check className="w-3.5 h-3.5 mr-1" /> Saved to Journal
-              </span>
-            )}
+            <div className="flex items-center space-x-2">
+              {savedEntryId && (
+                <button
+                  id="notepad-bookmark-btn"
+                  onClick={handleToggleBookmark}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 transition-all active:scale-95 ${
+                    isSavedEntryFavorite
+                      ? "bg-[#252011] border-[#d4af37] text-[#e5c158]"
+                      : "bg-[#161a25] border-[#293245] text-[#b8b3a4] hover:text-white"
+                  }`}
+                  title="Bookmark this prayer to Favorites"
+                >
+                  <Star className={`w-3.5 h-3.5 ${isSavedEntryFavorite ? "fill-currentColor text-[#e5c158]" : ""}`} />
+                  <span>{isSavedEntryFavorite ? "Bookmarked in Favorites" : "Bookmark Prayer"}</span>
+                </button>
+              )}
+              {savedEntryId && (
+                <span className="text-[11px] text-[#58a66f] flex items-center">
+                  <Check className="w-3.5 h-3.5 mr-1" /> Saved
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Pastoral Counsel */}
@@ -313,6 +408,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
                 <Heart className="w-3 h-3 mr-1" /> Custom Prayer in Jesus' Name
               </span>
               <button
+                id="notepad-listen-prayer-btn"
                 onClick={handleListenToPrayer}
                 className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5c158] text-[#0c0e12] flex items-center space-x-1 shadow active:scale-95"
               >
@@ -336,13 +432,16 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
             </div>
           </div>
 
-          {/* Quick link to Journal */}
-          <div className="text-center pt-2">
+          {/* Quick link to Journal & Favorites */}
+          <div className="text-center pt-2 flex items-center justify-center space-x-4">
             <button
-              onClick={onNavigateToJournal}
+              onClick={() => {
+                triggerHaptic("selection");
+                onNavigateToJournal();
+              }}
               className="text-xs font-semibold text-[#b8b3a4] hover:text-[#f7f4ec] underline"
             >
-              View all saved prayers in Journal →
+              View in Journal Archive →
             </button>
           </div>
         </div>
@@ -350,3 +449,4 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
     </div>
   );
 };
+

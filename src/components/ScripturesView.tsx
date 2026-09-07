@@ -12,6 +12,7 @@ import {
 import { SCRIPTURE_STUDIES } from "../data/scripturesData";
 import { ScriptureStudy, TheologicalTheme } from "../types";
 import { useDevotional } from "../context/DevotionalContext";
+import { triggerHaptic } from "../utils/haptics";
 
 interface ScripturesViewProps {
   onOpenPlayer: () => void;
@@ -35,6 +36,7 @@ export const ScripturesView: React.FC<ScripturesViewProps> = ({ onOpenPlayer }) 
       : SCRIPTURE_STUDIES.filter((s) => s.theme === selectedTheme);
 
   const handleListenToStudy = (study: ScriptureStudy) => {
+    triggerHaptic("medium");
     const speechScript = `Scripture Study: ${study.title}. Primary Passage: ${study.reference}. ${study.fullText}. Historical Background: ${study.historicalContext}. Original Language Insights: ${study.originalLanguageInsights.map((i) => `${i.language} word ${i.transliteration}, meaning ${i.definition}. ${i.theologicalSignificance}`).join(". ")}. Theological Exegesis: ${study.exegesis}. The Christological Bridge: ${study.christologicalBridge}. Prayer of Response: ${study.prayerfulResponse}`;
 
     playTrack({
@@ -46,6 +48,11 @@ export const ScripturesView: React.FC<ScripturesViewProps> = ({ onOpenPlayer }) 
       estimatedDuration: "5 mins",
     });
     onOpenPlayer();
+  };
+
+  const handleToggleBookmark = (studyId: string) => {
+    triggerHaptic("success");
+    toggleBookmarkScripture(studyId);
   };
 
   const themeBadges = [
@@ -76,7 +83,10 @@ export const ScripturesView: React.FC<ScripturesViewProps> = ({ onOpenPlayer }) 
         {themeBadges.map((badge) => (
           <button
             key={badge.id}
-            onClick={() => setSelectedTheme(badge.id as any)}
+            onClick={() => {
+              triggerHaptic("selection");
+              setSelectedTheme(badge.id as any);
+            }}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
               selectedTheme === badge.id
                 ? "bg-[#58a66f] text-[#0c0e12] border-[#58a66f] font-bold shadow"
@@ -103,7 +113,10 @@ export const ScripturesView: React.FC<ScripturesViewProps> = ({ onOpenPlayer }) 
             >
               {/* Card Header (clickable to expand/collapse) */}
               <div
-                onClick={() => setExpandedStudyId(isExpanded ? null : study.id)}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setExpandedStudyId(isExpanded ? null : study.id);
+                }}
                 className="p-4 cursor-pointer flex items-start justify-between bg-gradient-to-b from-[#161a25] to-[#12151e]"
               >
                 <div className="flex-1 pr-2">
@@ -121,7 +134,7 @@ export const ScripturesView: React.FC<ScripturesViewProps> = ({ onOpenPlayer }) 
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleBookmarkScripture(study.id);
+                      handleToggleBookmark(study.id);
                     }}
                     className={`p-2 rounded-xl transition-colors ${
                       isBookmarked

@@ -1,5 +1,6 @@
 import React from "react";
 import { Headphones, BookMarked, PenLine, BookmarkCheck } from "lucide-react";
+import { triggerHaptic } from "../utils/haptics";
 
 export type TabId = "lessons" | "scriptures" | "notepad" | "journal";
 
@@ -39,6 +40,11 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     },
   ];
 
+  const handleTabClick = (tabId: TabId) => {
+    triggerHaptic("selection");
+    onSelectTab(tabId);
+  };
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 bg-[#0c0e12]/95 backdrop-blur-md border-t border-[#212631] py-1.5 px-2"
@@ -51,10 +57,11 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
           return (
             <button
               key={tab.id}
-              onClick={() => onSelectTab(tab.id)}
+              id={`nav-tab-${tab.id}`}
+              onClick={() => handleTabClick(tab.id)}
               className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
                 isActive
-                  ? "bg-[#181d26] text-[#e5c158] font-semibold"
+                  ? "bg-[#181d26] text-[#e5c158] font-semibold shadow-inner"
                   : "text-[#8e897a] hover:text-[#c5c0b0] active:scale-95"
               }`}
               style={{ minHeight: "48px" }}

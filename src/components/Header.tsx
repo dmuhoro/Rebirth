@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPlayer }) => {
           <div>
             <div className="flex items-center space-x-1.5">
               <h1 className="font-display-title text-base font-semibold text-[#f7f4ec] tracking-wide">
-                SELAH
+                REBIRTH
               </h1>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#202633] text-[#d4af37] font-medium border border-[#d4af37]/20">
                 Devotional

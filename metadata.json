@@ -1,0 +1,7 @@
+{
+  "name": "Spiritual Lessons & Devotional Notepad",
+  "description": "Contemplative Christian devotional featuring comprehensive theological audio lessons, scripture studies, and an AI-guided spiritual notepad with speech synthesis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

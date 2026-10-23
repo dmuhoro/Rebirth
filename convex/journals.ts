@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 
 import { v } from "convex/values";
-import { requireAuth } from "./users";
+import { requireAuth } from "./ownership";
 
 export const createJournalEntry = mutation({
   args: {
@@ -13,8 +13,17 @@ export const createJournalEntry = mutation({
     localId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const now = Date.now();
+    if (args.localId) {
+      const existing = await ctx.db
+        .query("journalEntries")
+        .withIndex("by_userId_localId", (q) =>
+          q.eq("userId", userId).eq("localId", args.localId!),
+        )
+        .first();
+      if (existing) return existing._id;
+    }
     return ctx.db.insert("journalEntries", {
       userId,
       feelings: args.feelings,
@@ -24,7 +33,7 @@ export const createJournalEntry = mutation({
       isFavorite: args.isFavorite ?? false,
       createdAt: now,
       updatedAt: now,
-      localId: args.localId ?? null,
+      ...(args.localId ? { localId: args.localId } : {}),
       synced: true,
     });
   },
@@ -33,7 +42,7 @@ export const createJournalEntry = mutation({
 export const listJournalEntries = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     return ctx.db.query("journalEntries").withIndex("by_userId", (q) => q.eq("userId", userId));
   },
 });
@@ -41,7 +50,7 @@ export const listJournalEntries = query({
 export const deleteJournalEntry = mutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const entry = await ctx.db.get(args.id as any);
     if (!entry || (entry as any).userId !== userId) {
       throw new Error("Not found or not authorized");
@@ -53,7 +62,7 @@ export const deleteJournalEntry = mutation({
 export const exportJournalEntries = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     return ctx.db.query("journalEntries").withIndex("by_userId", (q) => q.eq("userId", userId));
   },
 });

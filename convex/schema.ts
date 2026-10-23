@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 /**
  * Rebirth Convex schema (Phase 3).
@@ -9,6 +10,7 @@ import { v } from "convex/values";
  * Guest rows: `userId: null`, local-only. Cross-user read/write = P0 defect.
  */
 export default defineSchema({
+  ...authTables,
   // Authenticated user profiles
   profiles: defineTable({
     userId: v.string(),
@@ -42,7 +44,10 @@ export default defineSchema({
     updatedAt: v.number(),
     localId: v.optional(v.string()), // client-side id before migration
     synced: v.optional(v.boolean()),
-  }).index("by_userId", ["userId"]).index("by_synced", ["synced"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_localId", ["userId", "localId"])
+    .index("by_synced", ["synced"]),
 
   // Lesson / scripture study progress
   lessonProgress: defineTable({
@@ -99,6 +104,17 @@ export default defineSchema({
     timezone: v.optional(v.string()),
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  pushSubscriptions: defineTable({
+    userId: v.string(),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_endpoint", ["userId", "endpoint"]),
 
   // Approved editorial content items (lessons, scripture studies, journeys)
   contentItems: defineTable({

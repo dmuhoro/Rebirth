@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 
 import { v } from "convex/values";
-import { requireAuth } from "./users";
+import { requireAuth } from "./ownership";
 
 export const upsertLessonProgress = mutation({
   args: {
@@ -10,7 +10,7 @@ export const upsertLessonProgress = mutation({
     completed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const now = Date.now();
     const existing = await ctx.db
       .query("lessonProgress")
@@ -37,7 +37,7 @@ export const upsertLessonProgress = mutation({
 export const listLessonProgress = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     return ctx.db.query("lessonProgress").withIndex("by_userId", (q) => q.eq("userId", userId));
   },
 });
@@ -45,7 +45,7 @@ export const listLessonProgress = query({
 export const toggleBookmark = mutation({
   args: { scriptureId: v.string() },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const existing = await ctx.db
       .query("scriptureBookmarks")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -65,7 +65,7 @@ export const toggleBookmark = mutation({
 export const listBookmarks = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     return ctx.db.query("scriptureBookmarks").withIndex("by_userId", (q) => q.eq("userId", userId));
   },
 });

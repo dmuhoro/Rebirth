@@ -1,131 +1,137 @@
-import { createContext, useContext, useCallback, useEffect, useState, ReactNode } from "react";
-import { ConvexProvider } from "convex/react";
-import { convex, api, isConvexReady } from "./convex";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useConvexAuth as useAuth } from "@convex-dev/auth/react";
+import { convex, api } from "./convex";
+import { useQuery } from "convex/react";
+import type { JournalEntry } from "../types";
+
+export interface LocalDataImport {
+  journalEntries: JournalEntry[];
+  lessonProgress: Record<string, number>;
+  completedLessonIds: string[];
+  bookmarkedScriptureIds: string[];
+}
+
+export interface MigrationResult {
+  importedJournals: number;
+  importedProgress: number;
+  importedBookmarks: number;
+}
 
 interface SyncContextType {
   isSynced: boolean;
   userId: string | null;
-  signIn: (userId: string) => void;
-  signOut: () => void;
-  migrateLocalStorageToConvex: () => Promise<void>;
-  syncJournal: (entries: any[]) => Promise<void>;
-  syncLessonProgress: (progress: Record<string, number>) => Promise<void>;
-  syncBookmarks: (ids: string[]) => Promise<void>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  migrateLocalStorageToConvex: (
+    data: LocalDataImport,
+  ) => Promise<MigrationResult>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
 
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let start = 0; start < items.length; start += size) {
+    chunks.push(items.slice(start, start + size));
+  }
+  return chunks;
+}
+
 /**
- * Convex sync provider.
+ * Convex sync provider (Phase 3).
  *
- * Wraps the app in ConvexProvider and exposes sync operations.
- * Guest mode (no userId) keeps data in localStorage only — Convex is never
- * written to, preserving data sovereignty for unauthenticated users.
+ * Uses Convex auth for identity:
+ *   - Signed in: userId from Convex auth, data syncs to Convex (ownership enforced).
+ *   - Guest: userId = null, data stays in localStorage only (never written to Convex).
  *
- * On sign-in, localStorage → Convex migration is idempotent, consent-based,
- * and duplicate-protected (localId tracking).
+ * Import is idempotent and may be retried after an interrupted migration.
  */
 export function SyncProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
   const [userId, setUserId] = useState<string | null>(null);
   const [isSynced, setIsSynced] = useState(false);
 
-  const signIn = useCallback((id: string) => {
-    setUserId(id);
-    localStorage.setItem("rebirth_auth_userId", id);
-  }, []);
+  // Fetch the current user's profile to get their userId.
+  const profile = useQuery(
+    api.users.getCurrentUser,
+    isAuthenticated ? {} : "skip",
+  );
 
-  const signOut = useCallback(() => {
-    setUserId(null);
-    localStorage.removeItem("rebirth_auth_userId");
-  }, []);
-
-  // Restore sign-in state on load (guest mode if none).
   useEffect(() => {
-    const saved = localStorage.getItem("rebirth_auth_userId");
-    if (saved) setUserId(saved);
-  }, []);
+    if (profile?.userId) {
+      setUserId(profile.userId);
+    } else if (!isAuthenticated) {
+      setUserId(null);
+    }
+  }, [profile, isAuthenticated]);
 
-  const migrateLocalStorageToConvex = useCallback(async () => {
-    if (!userId) return;
-    setIsSynced(true);
-  }, [userId]);
+  const migrateLocalStorageToConvex = useCallback(
+    async (data: LocalDataImport): Promise<MigrationResult> => {
+      if (!userId) {
+        throw new Error("Sign in before importing local data.");
+      }
 
-  const syncJournal = useCallback(
-    async (entries: any[]) => {
-      if (!userId || !isConvexReady()) return;
-      for (const entry of entries) {
-        try {
-          await convex.mutation(api.journals.createJournalEntry, {
-            feelings: entry.feelings,
-            theme: entry.theme,
-            emotionTag: entry.emotionTag,
-            guidance: entry.guidance,
-            isFavorite: entry.isFavorite,
-            localId: entry.id,
-          });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[Rebirth] Convex journal sync skipped for entry", entry.id, err);
-        }
+      const progressByLesson = { ...data.lessonProgress };
+      for (const lessonId of data.completedLessonIds) {
+        progressByLesson[lessonId] = Math.max(
+          progressByLesson[lessonId] ?? 0,
+          100,
+        );
+      }
+      const journals = chunk(data.journalEntries, 10);
+      const progress = chunk(
+        Object.entries(progressByLesson).map(([lessonId, percentage]) => ({
+          lessonId,
+          percentage,
+        })),
+        100,
+      );
+      const bookmarks = chunk(data.bookmarkedScriptureIds, 100);
+      const batchCount = Math.max(journals.length, progress.length, bookmarks.length);
+      const result: MigrationResult = {
+        importedJournals: 0,
+        importedProgress: 0,
+        importedBookmarks: 0,
+      };
+
+      for (let index = 0; index < batchCount; index++) {
+        const batchResult = await convex.mutation(api.sync.importLocalData, {
+          journalEntries: (journals[index] ?? []).map((entry) => ({
+            ...entry,
+            isFavorite: entry.isFavorite ?? false,
+          })),
+          lessonProgress: progress[index] ?? [],
+          bookmarkedScriptureIds: bookmarks[index] ?? [],
+        });
+        result.importedJournals += batchResult.importedJournals;
+        result.importedProgress += batchResult.importedProgress;
+        result.importedBookmarks += batchResult.importedBookmarks;
       }
       setIsSynced(true);
-    },
-    [userId],
-  );
-
-  const syncLessonProgress = useCallback(
-    async (progress: Record<string, number>) => {
-      if (!userId || !isConvexReady()) return;
-      for (const [lessonId, percentage] of Object.entries(progress)) {
-        try {
-          await convex.mutation(api.lessons.upsertLessonProgress, {
-            lessonId,
-            percentage,
-            completed: percentage >= 100,
-          });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[Rebirth] Convex lesson sync skipped", lessonId, err);
-        }
-      }
-      setIsSynced(true);
-    },
-    [userId],
-  );
-
-  const syncBookmarks = useCallback(
-    async (ids: string[]) => {
-      if (!userId || !isConvexReady()) return;
-      for (const scriptureId of ids) {
-        try {
-          await convex.mutation(api.lessons.toggleBookmark, { scriptureId });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("[Rebirth] Convex bookmark sync skipped", scriptureId, err);
-        }
-      }
-      setIsSynced(true);
+      return result;
     },
     [userId],
   );
 
   return (
-    <ConvexProvider client={convex}>
-      <SyncContext.Provider
-        value={{
-          isSynced,
-          userId,
-          signIn,
-          signOut,
-          migrateLocalStorageToConvex,
-          syncJournal,
-          syncLessonProgress,
-          syncBookmarks,
-        }}
-      >
-        {children}
-      </SyncContext.Provider>
-    </ConvexProvider>
+    <SyncContext.Provider
+      value={{
+        isSynced,
+        userId,
+        isAuthenticated,
+        isLoading,
+        migrateLocalStorageToConvex,
+      }}
+    >
+      {children}
+    </SyncContext.Provider>
   );
 }
 

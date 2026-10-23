@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "./users";
+import { requireAuth } from "./ownership";
 
 export const upsertReviewCard = mutation({
   args: {
@@ -15,7 +15,7 @@ export const upsertReviewCard = mutation({
     dueAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const now = Date.now();
     const existing = await ctx.db
       .query("reviewCards")
@@ -50,7 +50,7 @@ export const upsertReviewCard = mutation({
 export const listDueReviewCards = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const now = Date.now();
     return ctx.db
       .query("reviewCards")
@@ -65,7 +65,7 @@ export const recordReviewEvent = mutation({
     quality: v.number(),
   },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const card = await ctx.db.get(args.cardId as any);
     if (!card || (card as any).userId !== userId) {
       throw new Error("Not found or not authorized");
@@ -83,7 +83,7 @@ export const recordReviewEvent = mutation({
 export const listPracticeStreakDates = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     return ctx.db
       .query("practiceSessions")
       .withIndex("by_userId", (q) => q.eq("userId", userId));

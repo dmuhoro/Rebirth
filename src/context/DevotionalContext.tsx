@@ -76,6 +76,11 @@ interface DevotionalContextType {
   lessonProgress: Record<string, number>;
   bookmarkedScriptureIds: string[];
   favoriteEntryIds: string[];
+  mergeCloudData: (
+    entries: JournalEntry[],
+    progress: Record<string, number>,
+    bookmarks: string[],
+  ) => void;
 
   // Mutations
   addJournalEntry: (
@@ -367,6 +372,40 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
     [bookmarkedScriptureIds]
   );
 
+  const mergeCloudData = useCallback(
+    (
+      cloudEntries: JournalEntry[],
+      cloudProgress: Record<string, number>,
+      cloudBookmarks: string[],
+    ) => {
+      setJournalEntries((localEntries) => {
+        const merged = new Map<string, JournalEntry>();
+        for (const entry of localEntries) merged.set(entry.id, entry);
+        for (const entry of cloudEntries) {
+          merged.set(entry.id, entry);
+        }
+        return [...merged.values()].sort((a, b) => b.timestamp - a.timestamp);
+      });
+      setLessonProgress((localProgress) => {
+        const merged = { ...localProgress };
+        for (const [lessonId, percentage] of Object.entries(cloudProgress)) {
+          merged[lessonId] = Math.max(merged[lessonId] ?? 0, percentage);
+        }
+        return merged;
+      });
+      setCompletedLessonIds((localCompleted) => {
+        const cloudCompleted = Object.entries(cloudProgress)
+            .filter(([, percentage]) => percentage >= 100)
+            .map(([lessonId]) => lessonId);
+        return [...new Set([...localCompleted, ...cloudCompleted])];
+      });
+      setBookmarkedScriptureIds((localBookmarks) => [
+        ...new Set([...localBookmarks, ...cloudBookmarks]),
+      ]);
+    },
+    [],
+  );
+
   return (
     <DevotionalContext.Provider
       value={{
@@ -385,6 +424,7 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
         lessonProgress,
         bookmarkedScriptureIds,
         favoriteEntryIds,
+        mergeCloudData,
         addJournalEntry,
         deleteJournalEntry,
         toggleFavoriteEntry,

@@ -1,0 +1,285 @@
+import { useState } from "react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useDevotional } from "../context/DevotionalContext";
+import { useSync } from "../lib/sync";
+import { enableWebPush } from "../lib/webPush";
+import type { JournalEntry, TheologicalTheme } from "../types";
+
+interface SyncAccountViewProps {
+  onClose: () => void;
+  onOpenSignIn: () => void;
+}
+
+function isTheologicalTheme(value: string): value is TheologicalTheme {
+  return [
+    "spiritual_strength",
+    "repentance_transformation",
+    "divinity_of_christ",
+  ].includes(value);
+}
+
+export function SyncAccountView({
+  onClose,
+  onOpenSignIn,
+}: SyncAccountViewProps) {
+  const {
+    isAuthenticated,
+    isLoading,
+    userId,
+    migrateLocalStorageToConvex,
+  } = useSync();
+  const {
+    journalEntries,
+    lessonProgress,
+    completedLessonIds,
+    bookmarkedScriptureIds,
+    mergeCloudData,
+  } = useDevotional();
+  const { signOut } = useAuthActions();
+  const savePushSubscription = useMutation(api.push.saveSubscription);
+  const sendTestNotification = useAction(
+    api.pushActions.sendTestNotification,
+  );
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [isPushWorking, setIsPushWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const cloudSnapshot = useQuery(
+    api.sync.getCloudSnapshot,
+    isAuthenticated ? {} : "skip",
+  );
+
+  const importLocalData = async () => {
+    setError(null);
+    setResult(null);
+    setIsMigrating(true);
+    try {
+      const imported = await migrateLocalStorageToConvex({
+        journalEntries,
+        lessonProgress,
+        completedLessonIds,
+        bookmarkedScriptureIds,
+      });
+      setResult(
+        `Imported ${imported.importedJournals} journal entries, ${imported.importedProgress} progress records, and ${imported.importedBookmarks} bookmarks. Existing cloud records were preserved.`,
+      );
+    } catch (cause) {
+      // eslint-disable-next-line no-console
+      console.error("Local data import failed:", cause);
+      setError("Import did not complete. Your local data is unchanged; retry to continue.");
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const restoreCloudData = () => {
+    if (!cloudSnapshot) return;
+    setError(null);
+    setResult(null);
+    setIsRestoring(true);
+    try {
+      const entries: JournalEntry[] = cloudSnapshot.journalEntries.map(
+        (entry) => ({
+          id: entry.localId ?? entry._id,
+          timestamp: entry.createdAt,
+          feelings: entry.feelings,
+          theme: isTheologicalTheme(entry.theme) ? entry.theme : "general",
+          emotionTag: entry.emotionTag,
+          guidance: entry.guidance,
+          isFavorite: entry.isFavorite ?? false,
+        }),
+      );
+      const progress = Object.fromEntries(
+        cloudSnapshot.lessonProgress.map((record) => [
+          record.lessonId,
+          record.percentage,
+        ]),
+      );
+      const bookmarks = cloudSnapshot.bookmarks.map(
+        (bookmark) => bookmark.scriptureId,
+      );
+      mergeCloudData(entries, progress, bookmarks);
+      setResult(
+        `Restored ${entries.length} journal entries, ${Object.keys(progress).length} progress records, and ${bookmarks.length} bookmarks. Local records were preserved.`,
+      );
+    } catch (cause) {
+      // eslint-disable-next-line no-console
+      console.error("Cloud data restore failed:", cause);
+      setError("Cloud data could not be restored. Local data is unchanged.");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setError(null);
+    try {
+      await signOut();
+      onClose();
+    } catch (cause) {
+      // eslint-disable-next-line no-console
+      console.error("Sign-out failed:", cause);
+      setError("Sign-out failed. Please try again.");
+    }
+  };
+
+  const enableNotifications = async () => {
+    setError(null);
+    setResult(null);
+    setIsPushWorking(true);
+    try {
+      await enableWebPush(savePushSubscription);
+      setResult("Push notifications are enabled on this device.");
+    } catch (cause) {
+      // eslint-disable-next-line no-console
+      console.error("Push notification setup failed:", cause);
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Notifications could not be enabled. Please try again.",
+      );
+    } finally {
+      setIsPushWorking(false);
+    }
+  };
+
+  const sendTest = async () => {
+    setError(null);
+    setResult(null);
+    setIsPushWorking(true);
+    try {
+      const response = await sendTestNotification({});
+      setResult(`Test notification sent to ${response.delivered} device(s).`);
+    } catch (cause) {
+      // eslint-disable-next-line no-console
+      console.error("Test notification failed:", cause);
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "The test notification could not be sent.",
+      );
+    } finally {
+      setIsPushWorking(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-title"
+        className="w-full max-w-md space-y-5 rounded-2xl border border-[#353023] bg-[#11141a] p-5 text-[#f7f4ec] shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="account-title" className="text-lg font-semibold">
+              Account &amp; sync
+            </h2>
+            <p className="mt-1 text-sm text-[#b8b3a4]">
+              {isLoading
+                ? "Checking account status…"
+                : isAuthenticated
+                  ? "Your cloud data is private to your account."
+                  : "Guest data remains on this device until you sign in."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close account panel"
+            className="rounded-lg px-2 py-1 text-[#b8b3a4] hover:bg-white/10"
+          >
+            ×
+          </button>
+        </div>
+
+        {isAuthenticated ? (
+          <>
+            <div className="rounded-xl border border-[#252c3c] bg-[#0c0e12] p-3 text-xs text-[#b8b3a4]">
+              {userId ? "Cloud account connected." : "Loading cloud account…"}
+              <p className="mt-1">
+                Import and restore are manual copy operations. Repeat import
+                after local changes; local records are never removed.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={importLocalData}
+              disabled={isMigrating || isLoading || !userId}
+              className="w-full rounded-xl bg-[#d4af37] px-4 py-3 font-semibold text-[#0c0e12] hover:bg-[#e5c158] disabled:opacity-50"
+            >
+              {isMigrating ? "Importing local data…" : "Import local data to cloud"}
+            </button>
+            <button
+              type="button"
+              onClick={restoreCloudData}
+              disabled={isRestoring || isLoading || !cloudSnapshot}
+              className="w-full rounded-xl border border-[#d4af37]/40 px-4 py-3 text-sm text-[#e5c158] hover:bg-[#d4af37]/10 disabled:opacity-50"
+            >
+              {isRestoring ? "Restoring cloud data…" : "Restore cloud data to this device"}
+            </button>
+            <div className="space-y-2 rounded-xl border border-[#252c3c] p-3">
+              <h3 className="text-sm font-medium">Device notifications</h3>
+              <p className="text-xs text-[#b8b3a4]">
+                Opt in on each device, then send a test notification to verify
+                background delivery.
+              </p>
+              <button
+                type="button"
+                onClick={enableNotifications}
+                disabled={isPushWorking || !userId}
+                className="w-full rounded-lg border border-[#d4af37]/40 px-3 py-2 text-sm text-[#e5c158] hover:bg-[#d4af37]/10 disabled:opacity-50"
+              >
+                {isPushWorking ? "Working…" : "Enable notifications on this device"}
+              </button>
+              <button
+                type="button"
+                onClick={sendTest}
+                disabled={isPushWorking || !userId}
+                className="w-full rounded-lg border border-[#252c3c] px-3 py-2 text-sm text-[#b8b3a4] hover:border-[#c5c0b0] disabled:opacity-50"
+              >
+                Send test notification
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="w-full rounded-xl border border-[#252c3c] px-4 py-2 text-sm text-[#b8b3a4] hover:border-[#c5c0b0]"
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenSignIn}
+            className="w-full rounded-xl bg-[#d4af37] px-4 py-3 font-semibold text-[#0c0e12] hover:bg-[#e5c158]"
+          >
+            Sign in to enable cloud sync
+          </button>
+        )}
+
+        {result && (
+          <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-900/20 p-3 text-sm text-emerald-200">
+            {result}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-900/20 p-3 text-sm text-amber-200">
+            {error}
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}

@@ -1,21 +1,21 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-
-/** Helper: returns the authenticated user's identity or throws. */
-export function requireAuth(ctx: { auth: { getUserIdentity: () => { userId?: string | null } } }) {
-  const identity = ctx.auth.getUserIdentity();
-  if (!identity?.userId) {
-    throw new Error("Authentication required");
-  }
-  return identity.userId;
-}
+import { requireAuth } from "./ownership";
 
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const profile = await ctx.db.query("profiles").withIndex("by_userId", (q) => q.eq("userId", userId)).first();
-    return profile;
+    if (profile) return profile;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return {
+      userId,
+      email: "email" in user ? user.email : undefined,
+      name: "name" in user ? user.name : undefined,
+      imageUrl: "image" in user ? user.image : undefined,
+    };
   },
 });
 
@@ -26,7 +26,7 @@ export const upsertProfile = mutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = requireAuth(ctx as any);
+    const userId = await requireAuth(ctx);
     const now = Date.now();
     const existing = await ctx.db.query("profiles").withIndex("by_userId", (q) => q.eq("userId", userId)).first();
     if (existing) {

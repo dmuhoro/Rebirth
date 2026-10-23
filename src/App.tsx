@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useConvexAuth as useAuth } from "@convex-dev/auth/react";
 import { DevotionalProvider } from "./context/DevotionalContext";
 import { SyncProvider } from "./lib/sync";
 import { Header } from "./components/Header";
@@ -8,12 +9,15 @@ import { ScripturesView } from "./components/ScripturesView";
 import { NotepadView } from "./components/NotepadView";
 import { JournalArchiveView } from "./components/JournalArchiveView";
 import { AudioPlayerBar } from "./components/AudioPlayerBar";
+import { AuthView } from "./components/AuthView";
+import { SyncAccountView } from "./components/SyncAccountView";
 import { DailyContemplation, TheologicalTheme } from "./types";
 import { triggerHaptic } from "./utils/haptics";
 
-function DevotionalApp() {
+function DevotionalApp({ onOpenSignIn }: { onOpenSignIn: () => void }) {
   const [activeTab, setActiveTab] = useState<TabId>("lessons");
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [prepopulatedPrompt, setPrepopulatedPrompt] = useState<string | null>(null);
   const [prepopulatedTheme, setPrepopulatedTheme] = useState<TheologicalTheme | null>(null);
 
@@ -28,7 +32,10 @@ function DevotionalApp() {
   return (
     <div className="min-h-screen bg-[#0c0e12] text-[#f7f4ec] flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f7edd4]">
       {/* Top Header */}
-      <Header onOpenPlayer={() => setIsPlayerExpanded(true)} />
+      <Header
+        onOpenPlayer={() => setIsPlayerExpanded(true)}
+        onOpenAccount={() => setIsAccountOpen(true)}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-md mx-auto relative pt-2 safe-area-pad-bottom">
@@ -69,17 +76,29 @@ function DevotionalApp() {
 
       {/* Fixed Android Thumb Navigation */}
       <NavigationTabs activeTab={activeTab} onSelectTab={setActiveTab} />
+      {isAccountOpen && (
+        <SyncAccountView
+          onClose={() => setIsAccountOpen(false)}
+          onOpenSignIn={onOpenSignIn}
+        />
+      )}
     </div>
   );
 }
 
 export default function App() {
+  const { isAuthenticated } = useAuth();
+  const [isGuest, setIsGuest] = useState(false);
+
   return (
     <DevotionalProvider>
       <SyncProvider>
-        <DevotionalApp />
+        {isAuthenticated || isGuest ? (
+          <DevotionalApp onOpenSignIn={() => setIsGuest(false)} />
+        ) : (
+          <AuthView onContinueAsGuest={() => setIsGuest(true)} />
+        )}
       </SyncProvider>
     </DevotionalProvider>
   );
 }
-

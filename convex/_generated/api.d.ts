@@ -10,8 +10,12 @@
 
 import type * as auth from "../auth.js";
 import type * as content from "../content.js";
+import type * as http from "../http.js";
 import type * as journals from "../journals.js";
 import type * as lessons from "../lessons.js";
+import type * as ownership from "../ownership.js";
+import type * as push from "../push.js";
+import type * as pushActions from "../pushActions.js";
 import type * as review from "../review.js";
 import type * as sync from "../sync.js";
 import type * as users from "../users.js";
@@ -25,8 +29,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   content: typeof content;
+  http: typeof http;
   journals: typeof journals;
   lessons: typeof lessons;
+  ownership: typeof ownership;
+  push: typeof push;
+  pushActions: typeof pushActions;
   review: typeof review;
   sync: typeof sync;
   users: typeof users;

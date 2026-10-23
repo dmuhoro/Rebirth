@@ -4,6 +4,22 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-23
+
+### Added — Sprint 007: Phase 3 Auth & Local Data Import
+- Google OAuth and Resend-backed email magic-link sign-in with explicit guest mode.
+- Convex Auth HTTP routes for OAuth callbacks and passwordless email authentication.
+- Account panel for retryable local journal, lesson progress, completion, and bookmark import to Convex; local records are preserved.
+- Authenticated cloud snapshot query and restore-to-device flow for journals, progress, and bookmarks.
+- Idempotent Convex import mutation and local-ID journal deduplication.
+- Correct Convex Auth user-ID lookup in protected functions.
+
+### Added — Sprint 008: Phase 4 Web Push & Media Session
+- Authenticated, per-user Web Push subscriptions and a test notification action with stale subscription cleanup.
+- Service Worker push display and same-origin notification click handling.
+- Functional Media Session playback action handlers.
+- Pre-rendered audio assets and live notification delivery require voice-licensing/source decisions and VAPID deployment configuration; see Sprint 008.
+
 ### Added — Sprint 001: Theological Safety Foundation
 - `src/utils/theologicalGuardrails.ts` — three pillars (Qavah/Meno, Lev Tahor/Basar, Divinity of Christ) + hard rules (no manifestation/frequency/attraction, no prosperity gospel, no suffering-as-weak-faith, no direct-revelation claims, traceable citations, always points to Scripture/prayer/community).
 - Fail-closed guardrail gate on `/api/spiritual-guidance` in `server.ts`: violating AI output returns the biblically-grounded fallback instead of the AI payload.

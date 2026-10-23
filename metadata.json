@@ -1,6 +1,6 @@
 {
   "name": "Rebirth",
-  "description": "Contemplative Christian devotional featuring comprehensive theological audio lessons, scripture studies, and an AI-guided spiritual notepad with speech synthesis.",
+  "description": "Offline-first Christian devotional with Scripture studies, private cloud backup, Web Push, and AI-guided prayer.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

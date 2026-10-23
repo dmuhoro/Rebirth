@@ -1,7 +1,7 @@
 {
   "name": "Rebirth — Contemplative Christian Devotional",
   "short_name": "Rebirth",
-  "description": "Contemplative Christian audio devotional, original-language scripture exegesis, and AI-guided prayer notepad for Android and mobile web.",
+  "description": "Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -12,8 +12,8 @@ Ship retention mechanics: streak calculator, SM-2 spaced repetition, reminder pr
 - `convex/codegen` regenerated; review functions deployed
 
 ## Scope (out of this sprint)
-- Opt-in web-push notification delivery (reminder preferences schema exists; delivery is future phase)
-- Pre-rendered / server-rendered audio assets (MediaSession integration done in Phase 1; asset pipeline future phase)
+- Opt-in Web Push delivery (subscription and test-message infrastructure added in Sprint 008; VAPID setup and physical-device verification remain)
+- Pre-rendered / server-rendered audio assets (requires approved voice/source assets and a configured TTS provider)
 - Streak UI display in LessonsView / journal
 
 ## Acceptance criteria

@@ -8,16 +8,26 @@
 
 > *"Therefore, if anyone is in Christ, he is a new creation. The old has passed away; behold, the new has come."* — 2 Corinthians 5:17
 
-**Rebirth** is an open-source, mobile-first contemplative Christian devotional application engineered for modern disciples. Designed specifically for thumb-friendly Android and mobile browser usage, Rebirth bridges academic Christology, original-language biblical exegesis (Hebrew and Greek), and spiritual disciplines with hands-free Web Speech audio narration and dynamic, AI-guided pastoral counseling.
+**Rebirth** is an open-source, offline-first contemplative Christian devotional for mobile browsers and Android. It brings together Christ-centered Scripture studies, original-language exegesis, formation journeys, private journaling, optional cloud backup/restore, and AI-guided pastoral reflection.
+
+## Live deployment
+
+- **App:** [rebirth-devotional.vercel.app](https://rebirth-devotional.vercel.app/)
+- **Vercel project:** [rebirth-devotional](https://vercel.com/dmuhor01/rebirth-devotional)
+- **Convex production deployment:** [accomplished-kiwi-69](https://dashboard.convex.dev/t/dmuhoro/rebirth/accomplished-kiwi-69)
+
+The production PWA and API health endpoint are deployed. Guest mode is available;
+AI, Google sign-in, email delivery, and Web Push require operator-managed
+secrets/configuration in Vercel and Convex before those integrations can be used.
 
 ---
 
 ## 📖 Recommended Repository Details
 
 * **Repository Name:** `rebirth-devotional`
-* **Short Description:** *Contemplative Christian audio devotional, original-language scripture exegesis, and AI-guided prayer notepad for Android and mobile web.*
+* **Short Description:** *Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.*
 * **Repository Topics:**
-  `christian-devotional`, `theology`, `christology`, `audio-devotional`, `web-speech-api`, `react`, `typescript`, `gemini-api`, `spiritual-disciplines`, `mobile-web`, `contemplative-prayer`, `vitest`
+  `christian-devotional`, `theology`, `christology`, `pwa`, `offline-first`, `convex`, `web-push`, `react`, `typescript`, `gemini-api`, `spiritual-disciplines`, `mobile-web`, `contemplative-prayer`, `vitest`
 
 ---
 
@@ -45,7 +55,7 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 ## ✨ Key Features
 
 - 🎧 **Comprehensive Audio Lessons & Narration:**
-  Hands-free audio playback powered by the native browser Web Speech API. Listen to multi-part theological expositions, patristic voices (St. Augustine, St. Athanasius, Martin Luther), and guided breath prayers on walks, during commutes, or in quiet meditation.
+  Browser speech synthesis narrates lessons and Scripture studies. Media Session metadata and playback controls are supported where the browser provides them. Browser speech may pause when the device locks; persistent background narration requires pre-rendered recordings and is not yet available.
 - ⚡ **Tactile Android Haptic Feedback:**
   Integrated haptic engine (`navigator.vibrate`) providing physical tactile responses during tab navigation, prayer generation, and bookmarking.
 - 📜 **Original-Language Scripture Studies:**
@@ -55,9 +65,15 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 - ✍️ **AI Spiritual Notepad & Pastoral Counsel:**
   Express honest emotions, spiritual dryness, contrition, or anxiety. The integrated Gemini API generates grounded pastoral guidance, reassuring scripture promises, customized prayers in Jesus' Name, and centered breath prayers.
 - ⭐ **Spiritual Archive, Progress Tracking & Favorites:**
-  Dedicated favorites tab for bookmarked prayers and insights, persistent reading progress tracking across lessons, and local offline storage.
+  Journals, bookmarks, lesson progress, formation journeys, streak calculations, and spaced-repetition scheduling. Guest data stays in local storage; signed-in users can manually import local records to Convex or restore cloud records to the current device. Re-run import after local changes; automatic background synchronization is not yet implemented.
 - 🎚️ **Adaptive Playback Engine:**
-  Real-time speech rate slider (0.7x to 1.5x) with quick presets, active sentence scrubbing, background listening persistence, and floating mini-player bar.
+  Adjustable speech rate, playback controls, and a floating mini-player.
+- 🔐 **Account & Cloud Sync:**
+  Google OAuth and passwordless email sign-in, with a guest mode and a retryable local-data import. Convex functions enforce ownership at the data boundary.
+- 🔔 **Opt-in Web Push:**
+  Per-device subscription and a test notification flow. Delivery requires VAPID configuration; browser permission is requested only after the user opts in.
+- 📲 **Offline PWA:**
+  Installable application shell and cached public content. Private journal and AI responses are excluded from the service-worker cache.
 
 ---
 
@@ -118,9 +134,28 @@ cp .env.example .env
 ```
 Inside `.env`:
 ```env
-GEMINI_API_KEY="your-gemini-api-key-here"
+GEMINI_API_KEY="your-gemini-api-key"
 ```
-*(Note: If no API key is provided, the application gracefully provides grounded, theological fallback responses so the application remains fully functional).*
+Configure Convex development and populate its generated frontend URLs:
+```bash
+npx convex dev
+```
+
+For authentication, set these variables in the Convex deployment environment:
+`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `RESEND_API_KEY`, and
+`EMAIL_FROM`. Register Google OAuth callback URLs using the Convex Auth site
+URL (`https://<deployment>.convex.site/api/auth/callback/google`). For local
+development only, magic links can be printed to the Convex development logs by
+setting `EMAIL_LINK_DEV_MODE=true`; production email sign-in requires Resend
+configuration and otherwise fails closed.
+
+For Web Push, generate a VAPID key pair and set `VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` in Convex. Set the matching public key
+as `VITE_WEB_PUSH_PUBLIC_KEY` before building the frontend. Never expose the
+private VAPID key with a `VITE_` variable.
+
+Without `GEMINI_API_KEY`, AI-guided reflection uses the project's grounded
+fallback response.
 
 ### Running Locally
 ```bash
@@ -154,10 +189,11 @@ npm run start
 
 ## 🧪 Testing Strategy
 
-The repository includes test suites checking:
-1. **Theological Curriculum Integrity:** Verifies coverage of all three foundational themes, patristic quotes, breath prayers, and Hebrew/Greek lexical structures.
-2. **Tactile Haptic Engine:** Validates non-blocking fallback behavior across varying browser environments and mobile devices.
-3. **Daily Contemplation & Deep-Linking:** Verifies correct prompt interpolation and emotion mapping when transferring daily verses into the prayer notepad.
+`npm run lint`, `npm test`, and `npm run build` are the required local checks.
+The current automated suite contains 41 tests covering theological guardrails,
+curriculum, journeys, haptics, daily contemplation, streak calculation, and
+spaced repetition. PWA installation, offline startup, notifications, OAuth, and
+background audio still require browser/device and configured-provider checks.
 
 ---
 

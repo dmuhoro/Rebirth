@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { DevotionalProvider } from "./context/DevotionalContext";
+import { SyncProvider } from "./lib/sync";
 import { Header } from "./components/Header";
 import { NavigationTabs, TabId } from "./components/NavigationTabs";
 import { LessonsView } from "./components/LessonsView";
@@ -30,7 +31,7 @@ function DevotionalApp() {
       <Header onOpenPlayer={() => setIsPlayerExpanded(true)} />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-md mx-auto relative pt-2">
+      <main className="flex-1 w-full max-w-md mx-auto relative pt-2 safe-area-pad-bottom">
         {activeTab === "lessons" && (
           <LessonsView
             onOpenPlayer={() => setIsPlayerExpanded(true)}
@@ -75,7 +76,9 @@ function DevotionalApp() {
 export default function App() {
   return (
     <DevotionalProvider>
-      <DevotionalApp />
+      <SyncProvider>
+        <DevotionalApp />
+      </SyncProvider>
     </DevotionalProvider>
   );
 }

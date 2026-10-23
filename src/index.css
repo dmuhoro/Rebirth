@@ -59,3 +59,39 @@
 .animate-gold-pulse {
   animation: goldPulse 2.8s ease-in-out infinite;
 }
+
+/* Safe-area insets for mobile notches / home indicators (iOS & Android) */
+@layer utilities {
+  .safe-area-pad {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-area-pad-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-area-pad-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  /* Reduced motion: respect prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .animate-gold-pulse {
+      animation: none !important;
+    }
+    .animate-ping {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .animate-spin {
+      animation: none !important;
+    }
+  }
+}

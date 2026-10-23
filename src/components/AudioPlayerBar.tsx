@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useDevotional } from "../context/DevotionalContext";
 import { triggerHaptic } from "../utils/haptics";
+import { useMediaSession } from "../hooks/useMediaSession";
 
 interface AudioPlayerBarProps {
   isExpanded: boolean;
@@ -43,6 +44,8 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
   const percentage = progress?.percentage || 0;
   const isPlaying = playbackState === "playing";
+
+  useMediaSession(activeTrack, isPlaying && !!activeTrack);
 
   const handlePlayPause = () => {
     triggerHaptic("medium");

@@ -47,7 +47,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 bg-[#0c0e12]/95 backdrop-blur-md border-t border-[#212631] py-1.5 px-2"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-[#0c0e12]/95 backdrop-blur-md border-t border-[#212631] py-1.5 px-2 safe-area-pad-bottom"
       aria-label="Bottom Navigation"
     >
       <div className="max-w-md mx-auto grid grid-cols-4 gap-1">

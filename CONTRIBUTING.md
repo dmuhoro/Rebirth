@@ -43,6 +43,7 @@ Create a descriptive branch for your work:
 - **Mobile First:** Ensure all touch targets are at least 44px on mobile screens, thumb-friendly, and responsive.
 - **Icons:** Use `lucide-react`. Do not inject custom raw SVGs.
 - **Modularity:** Extract reusable views and widgets into `src/components/`.
+- **Theological review:** Any content, prompt, or copy touching Scripture, prayer, or pastoral counsel must pass the review checklist in `docs/THEOLOGY.md` (theological review gate) before merge. The AI never speaks as God; no manifestation/frequency/prosperity framing.
 
 ---
 

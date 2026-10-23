@@ -104,8 +104,8 @@ rebirth/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/rebirth-devotional.git
-cd rebirth-devotional
+git clone https://github.com/dmuhoro/Rebirth.git
+cd Rebirth
 
 # Install dependencies
 npm install

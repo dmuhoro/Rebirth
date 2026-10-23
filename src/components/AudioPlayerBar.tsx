@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Play,
   Pause,
@@ -40,12 +40,12 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
   const [walkMode, setWalkMode] = useState(false);
 
-  if (!activeTrack) return null;
-
-  const percentage = progress?.percentage || 0;
-  const isPlaying = playbackState === "playing";
-
-  useMediaSession(activeTrack, isPlaying && !!activeTrack);
+  const handleMediaPlay = useCallback(() => {
+    if (playbackState !== "playing") togglePlayPause();
+  }, [playbackState, togglePlayPause]);
+  const handleMediaPause = useCallback(() => {
+    if (playbackState === "playing") togglePlayPause();
+  }, [playbackState, togglePlayPause]);
 
   const handlePlayPause = () => {
     triggerHaptic("medium");
@@ -71,6 +71,18 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     triggerHaptic("selection");
     stopAudio();
   };
+
+  useMediaSession(activeTrack, playbackState, {
+    onPlay: handleMediaPlay,
+    onPause: handleMediaPause,
+    onPrevious: skipBackward,
+    onNext: skipForward,
+  });
+
+  if (!activeTrack) return null;
+
+  const percentage = progress?.percentage || 0;
+  const isPlaying = playbackState === "playing";
 
   const handleSpeedSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -362,4 +374,3 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     </>
   );
 };
-

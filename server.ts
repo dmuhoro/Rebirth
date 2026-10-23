@@ -3,6 +3,11 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import {
+  buildPastoralSystemInstruction,
+  buildDailyContemplationSystemInstruction,
+  validateOutputAgainstGuardrails,
+} from "./src/utils/theologicalGuardrails";
 
 dotenv.config();
 
@@ -190,9 +195,9 @@ app.get("/api/daily-contemplation", async (req, res) => {
         const themeChoices = ["spiritual_strength", "repentance_transformation", "divinity_of_christ"];
         const chosenTheme = themeChoices[Math.floor(Math.random() * themeChoices.length)];
 
-        const prompt = `Generate a single profound, contemplative Christian daily verse reflection.
-Core theme: ${chosenTheme} (Themes: 1. Reclaiming Spiritual Strength through waiting and abiding; 2. Repentance and inner transformation from stony heart to heart of flesh; 3. Exploring the Divinity of Christ as the eternal Logos and sole Bridge to the Father).
-Provide a single scripture with reference, full text, theme, themeLabel, a 1-2 sentence piercing reflectionPrompt that invites prayerful contemplation, and a 1-sentence christologicalFocus.`;
+        const prompt = buildDailyContemplationSystemInstruction() + `
+
+Selected theme: ${chosenTheme}`;
 
         const response = await ai.models.generateContent({
           model: "gemini-3.8-flash",
@@ -265,13 +270,7 @@ app.post("/api/spiritual-guidance", async (req, res) => {
       });
     }
 
-    const systemInstruction = `You are a reverent, profoundly knowledgeable Christian theologian and pastoral counselor specializing in classical Christology, the New Covenant, and historical spiritual disciplines (such as lectio divina, hesychasm, contemplative prayer, and the writings of Athanasius, Augustine, the Puritans, and C.S. Lewis).
-
-Your task is to analyze the believer's heartfelt journal reflection, feelings, or spiritual state, and provide:
-1. "pastoralCounsel": Deep, compassionate, theologically rigorous pastoral reflection (2-3 paragraphs). Avoid superficial platitudes or self-help clichés. Root everything in the New Covenant, the work of the Holy Spirit, and the supremacy of Jesus Christ. If the user expresses fatigue, guide them to 'qavah' (waiting on Yahweh) and abiding in the Vine (John 15). If they express guilt or contrition, guide them toward genuine 'metanoia' (heart of flesh, Ezekiel 36:26, no condemnation Romans 8:1). If they express confusion, doubt, or awe, fix their gaze on the divinity of Christ (John 1:1, Colossians 1:15-20, Hebrews 1:3).
-2. "scriptures": An array of 2 to 3 carefully selected Scripture verses, with "reference", full "text", and "theologicalContext" explaining how the verse illuminates their specific situation in light of Christ.
-3. "customPrayer": A reverent, deeply moving, personal prayer written in first-person ("Heavenly Father..."), praying through their specific thoughts, laying down self-reliance, anchoring in Christ's finished work, and concluding in the Name of Jesus Christ.
-4. "breathPrayer": A short contemplative breath prayer with "Inhale: [Phrase]" and "Exhale: [Phrase]" for walking or quiet meditation.`;
+    const systemInstruction = buildPastoralSystemInstruction();
 
     const prompt = `User's Spiritual Journal Entry / Feelings:
 """
@@ -333,6 +332,19 @@ Please generate a thoughtful, compassionate pastoral response with targeted scri
     }
 
     const parsed = JSON.parse(responseText);
+
+    // Theological safety gate: fail closed if AI output violates the hard rules.
+    const guardrail = validateOutputAgainstGuardrails(JSON.stringify(parsed));
+    if (!guardrail.passed) {
+      console.warn("AI output failed theological guardrails, using fallback:", guardrail.violations);
+      const fallback = FALLBACK_RESPONSES.spiritual_strength;
+      return res.json({
+        ...fallback,
+        isAIGenerated: false,
+        note: "Theological guardrail engaged; biblically formulated fallback counsel provided.",
+      });
+    }
+
     return res.json({
       ...parsed,
       isAIGenerated: true,

@@ -1,12 +1,16 @@
 import React from "react";
-import { Sparkles, Volume2, BookOpen, CheckCircle2 } from "lucide-react";
+import { CheckCircle2, UserRound, Volume2 } from "lucide-react";
 import { useDevotional } from "../context/DevotionalContext";
 
 interface HeaderProps {
   onOpenPlayer?: () => void;
+  onOpenAccount?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenPlayer }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenPlayer,
+  onOpenAccount,
+}) => {
   const { playbackState, activeTrack, completedLessonIds } = useDevotional();
 
   return (
@@ -32,6 +36,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPlayer }) => {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={onOpenAccount}
+            aria-label="Open account and sync settings"
+            className="rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#e5c158]"
+          >
+            <UserRound className="h-4 w-4" />
+          </button>
+
           {/* Completed lessons badge */}
           {completedLessonIds.length > 0 && (
             <div

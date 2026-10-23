@@ -4,8 +4,8 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
-### Added
-- Theological safety foundation: `src/utils/theologicalGuardrails.ts` encoding the three pillars (Qavah/Meno, Lev Tahor/Basar, Divinity of Christ) and hard rules (no manifestation/frequency/attraction, no prosperity gospel, no suffering-as-weak-faith, no direct-revelation claims, traceable citations, always points to Scripture/prayer/community).
+### Added — Sprint 001: Theological Safety Foundation
+- `src/utils/theologicalGuardrails.ts` — three pillars (Qavah/Meno, Lev Tahor/Basar, Divinity of Christ) + hard rules (no manifestation/frequency/attraction, no prosperity gospel, no suffering-as-weak-faith, no direct-revelation claims, traceable citations, always points to Scripture/prayer/community).
 - Fail-closed guardrail gate on `/api/spiritual-guidance` in `server.ts`: violating AI output returns the biblically-grounded fallback instead of the AI payload.
 - `src/__tests__/theologicalGuardrails.test.ts` — 12 boundary tests (manifestation, prosperity, suffering-as-faith, "God told you", "God is saying", law-of-attraction, clean response, system-instruction content).
 - `docs/AGENTS.md` — operating conventions for all agents and humans.
@@ -15,8 +15,44 @@ All notable changes to Rebirth are documented in this file.
 - `scripts/verify-theological-guardrails.sh` — lint + test + build verification.
 - `sprints/sprint-001-theological-safety-foundation.md`.
 
+### Added — Sprint 002: Phase 1 PWA Offline-First
+- `public/manifest.webmanifest` — app metadata, themed icons, maskable icon, display: standalone.
+- `public/icons/*.png` — 9 sizes (72–512) + maskable + apple-touch-icon.
+- `public/sw.js` — Service Worker: cache-first static shell, network-first API + offline fallback, private data excluded.
+- `index.html` — manifest link, theme-color, apple-touch-icon, SW registration script.
+- `src/index.css` — safe-area insets, reduced-motion support.
+- `src/components/AudioPlayerBar.tsx` — useMediaSession lock-screen metadata integration.
+- `src/hooks/useMediaSession.ts` — feature-detected MediaSession.
+
+### Added — Sprint 003: Phase 2 Backend Security & Production Proxy
+- `src/utils/apiSchemas.ts` — Zod request schemas + sanitizeError (no stack/key leaks).
+- `src/utils/apiSecurity.ts` — express-rate-limit (API + stricter AI limiter), Gemini daily spend cap circuit breaker, body-size limit, structured request logger (no PII).
+- `server.ts` — `/api/*` rate limit, AI limiter, body size, request logger; Zod validation on spiritual-guidance; spend-cap refusal (503); sanitized 502 errors.
+
+### Added — Sprint 004: Phase 3 Convex Cloud Sync
+- Convex project `outstanding-ram-327` (eu-west-1) linked; dev deployment provisioned; `npx convex codegen` types generated.
+- `convex/schema.ts` — 13 tables, all userId-scoped (ownership enforced = RLS-equivalent).
+- `convex/users.ts`, `convex/journals.ts`, `convex/lessons.ts`, `convex/content.ts`, `convex/sync.ts`, `convex/auth.ts`, `convex/review.ts` — ownership-enforced mutations/queries.
+- `src/lib/convex.ts` — ConvexReactClient + generated api exports.
+- `src/lib/sync.tsx` — SyncProvider, guest/auth mode, signIn/signOut, sync functions.
+- `src/App.tsx` — wraps DevotionalApp in SyncProvider.
+
+### Added — Sprint 005: Phase 3.5 Formation Journeys Content
+- `src/data/journeysData.ts` — FormationJourney type + 7 journeys (Joseph, Moses, David, Nehemiah, Ruth, Paul, Jesus Christ) using the fixed formation template.
+- `src/__tests__/journeys.test.ts` — 6 theological integrity tests.
+
+### Added — Sprint 006: Phase 4 Retention, Spaced Repetition & Audio Upgrades
+- `src/lib/streak.ts` — pure streak calculator (current/longest streak, streak days, grace-day pause, broken detection).
+- `src/lib/spacedRepetition.ts` — pure SM-2 scheduler (create/review/due/sort), ease factor clamped >= 1.3.
+- `src/__tests__/streak.test.ts` — 5 streak tests.
+- `src/__tests__/spacedRepetition.test.ts` — 7 SM-2 tests.
+- `convex/review.ts` — upsertReviewCard, listDueReviewCards, recordReviewEvent, listPracticeStreakDates.
+
 ### Changed
-- `server.ts`: replaced inline system instruction with `buildPastoralSystemInstruction()`; added `validateOutputAgainstGuardrails()` fail-closed gate; added `buildDailyContemplationSystemInstruction()` for `/api/daily-contemplation`.
+- `server.ts`: replaced inline system instruction with `buildPastoralSystemInstruction()`; added `validateOutputAgainstGuardrails()` fail-closed gate; Zod validation, rate limiting, spend cap, sanitized errors.
+- `CONTRIBUTING.md` — theological review gate wired in.
+- `README.md` — clone URL fixed to dmuhoro/Rebirth.
+- `ROADMAP.md` — added (release roadmap).
 
 ## [1.0.0] - 2026-10-23 (baseline prototype)
 - Initial release: React 19, TypeScript strict, Vite, Tailwind v4, Express + Gemini, Web Speech audio, haptics, localStorage state, 3 Vitest suites, GitHub Actions CI.

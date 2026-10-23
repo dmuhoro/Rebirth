@@ -8,6 +8,20 @@ import {
   buildDailyContemplationSystemInstruction,
   validateOutputAgainstGuardrails,
 } from "./src/utils/theologicalGuardrails";
+import {
+  SpiritualGuidanceRequestSchema,
+  sanitizeError,
+} from "./src/utils/apiSchemas";
+import {
+  apiRateLimiter,
+  aiRateLimiter,
+  bodySizeLimit,
+  requestLogger,
+  canAffordAiRequest,
+  recordSpendUsd,
+  getDailySpendUsd,
+  spendCapRemainingUsd,
+} from "./src/utils/apiSecurity";
 
 dotenv.config();
 
@@ -15,6 +29,13 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+app.use(requestLogger);
+app.use(bodySizeLimit);
+
+// Rate limit all /api/* routes (IP-based). Stricter limit for AI endpoints.
+app.use("/api/*", apiRateLimiter);
+app.use("/api/spiritual-guidance", aiRateLimiter);
+app.use("/api/daily-contemplation", aiRateLimiter);
 
 // Lazy-initialized Gemini client with telemetry header
 let aiClient: GoogleGenAI | null = null;
@@ -240,16 +261,33 @@ Selected theme: ${chosenTheme}`;
       isAIGenerated: false,
     });
   } catch (error) {
-    console.error("Error in /api/daily-contemplation:", error);
-    res.status(500).json({ error: "Failed to retrieve daily contemplation" });
+    const safe = sanitizeError(error);
+    console.error("Error in /api/daily-contemplation:", safe.code, safe.message);
+    res.status(500).json({ error: safe.message, code: safe.code });
   }
 });
 app.post("/api/spiritual-guidance", async (req, res) => {
   try {
-    const { entryText, theme, emotion } = req.body;
+    // Zod schema validation — fail closed on invalid payloads.
+    const parseResult = SpiritualGuidanceRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "invalid_request",
+        code: "VALIDATION_ERROR",
+        details: parseResult.error.flatten().fieldErrors,
+      });
+    }
+    const { entryText, theme, emotion } = parseResult.data;
 
-    if (!entryText || typeof entryText !== "string" || entryText.trim().length === 0) {
-      return res.status(400).json({ error: "entryText is required" });
+    // Spend cap check — refuse AI calls once the daily Gemini budget is exhausted.
+    if (!canAffordAiRequest(0.01)) {
+      return res.status(503).json({
+        error: "ai_budget_exhausted",
+        code: "SPEND_CAP_REACHED",
+        message:
+          "The daily AI counseling budget has been reached. Your saved reflections and Scripture remain available offline. Please try again tomorrow.",
+        remainingUsd: spendCapRemainingUsd(),
+      });
     }
 
     const ai = getGenAI();
@@ -260,8 +298,8 @@ app.post("/api/spiritual-guidance", async (req, res) => {
         theme === "repentance_transformation"
           ? "repentance_transformation"
           : theme === "divinity_of_christ"
-          ? "divinity_of_christ"
-          : "spiritual_strength";
+            ? "divinity_of_christ"
+            : "spiritual_strength";
       const fallback = FALLBACK_RESPONSES[fallbackKey];
       return res.json({
         ...fallback,
@@ -350,12 +388,15 @@ Please generate a thoughtful, compassionate pastoral response with targeted scri
       isAIGenerated: true,
     });
   } catch (error: any) {
-    console.error("Error in /api/spiritual-guidance:", error);
-    // Gracefully provide theological fallback
+    const safe = sanitizeError(error);
+    console.error("Error in /api/spiritual-guidance:", safe.code, safe.message);
+    // Fail closed: never leak provider internals or stack traces to the client.
     const fallback = FALLBACK_RESPONSES.spiritual_strength;
-    return res.json({
+    return res.status(502).json({
       ...fallback,
       isAIGenerated: false,
+      error: safe.message,
+      code: safe.code,
       note: "Biblically formulated theological counsel provided.",
     });
   }

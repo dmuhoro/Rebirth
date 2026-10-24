@@ -63,17 +63,28 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 - 🕊️ **Daily Contemplation & Deep-Linking:**
   Rotating daily scripture contemplation with reflective prompts that deep-link directly into the spiritual notepad.
 - ✍️ **AI Spiritual Notepad & Pastoral Counsel:**
-  Express honest emotions, spiritual dryness, contrition, or anxiety. The integrated Gemini API generates grounded pastoral guidance, reassuring scripture promises, customized prayers in Jesus' Name, and centered breath prayers.
+  With explicit consent, reflections can be processed by Gemini for pastoral guidance, Scripture, and prayer. An immediate-risk screen returns static crisis resources without calling AI; this is not a crisis service and cannot identify every emergency.
 - ⭐ **Spiritual Archive, Progress Tracking & Favorites:**
-  Journals, bookmarks, lesson progress, formation journeys, streak calculations, and spaced-repetition scheduling. Guest data stays in local storage; signed-in users can manually import local records to Convex or restore cloud records to the current device. Re-run import after local changes; automatic background synchronization is not yet implemented.
+  Journals, bookmarks, lesson progress, formation journeys, streak calculations, and spaced-repetition scheduling. Guest data stays in local storage; signed-in users can manually back up local records to Convex or restore cloud records to the current device. Repeat the backup after local changes.
 - 🎚️ **Adaptive Playback Engine:**
   Adjustable speech rate, playback controls, and a floating mini-player.
-- 🔐 **Account & Cloud Sync:**
-  Google OAuth and passwordless email sign-in, with a guest mode and a retryable local-data import. Convex functions enforce ownership at the data boundary.
+- 🔐 **Account & Manual Backup:**
+  Google OAuth and passwordless email sign-in, with guest mode and user-initiated backup and restore. Convex functions enforce ownership at the data boundary; there is no automatic cross-device sync.
 - 🔔 **Opt-in Web Push:**
   Per-device subscription and a test notification flow. Delivery requires VAPID configuration; browser permission is requested only after the user opts in.
 - 📲 **Offline PWA:**
   Installable application shell and cached public content. Private journal and AI responses are excluded from the service-worker cache.
+
+---
+
+## Privacy
+
+- Journal entries and generated counsel are stored in this browser's local storage. The app does not encrypt this browser storage; protect access to your device.
+- AI reflection requires an explicit consent checkbox. The entry is sent to Rebirth's API server, screened for crisis language, and, when configured, sent to Google Gemini for a response. The server logs request metadata (such as route, status, duration, and IP address), not journal text. AI results are saved locally after a successful response; they are not automatically uploaded to Convex.
+- Signed-in users can manually import local records to Convex and restore cloud records to a device. This is not live synchronization. Repeat the manual backup after making local changes.
+- JSON/Markdown exports can contain sensitive reflections. Store and share exported files carefully. JSON device restore applies supported journal, bookmark, progress, and preference data; cloud-only records included in an account export are archival and are not recreated by device restore. Exports do not contain sign-in credentials or browser push subscription keys.
+- Data deletion removes devotional records from local storage and the signed-in user's Convex data, and unsubscribes this browser from push notifications. The authentication account remains; a minimal deletion timestamp is retained locally and in Convex to prevent an older backup from restoring deleted journal entries.
+- The crisis screen provides general emergency guidance and a link to [Find A Helpline](https://findahelpline.com/). It is not monitored, is not a substitute for emergency or professional support, and may not detect every crisis. If you or someone else may be in immediate danger, contact local emergency services.
 
 ---
 

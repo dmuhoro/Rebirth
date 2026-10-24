@@ -4,6 +4,13 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Added — Sprint 009: Trusted Private Reflection & Reliable Backup
+- Versioned JSON and Markdown exports, local JSON restore, expanded Convex backup snapshots, and deletion safeguards that prevent older journal backups from resurrecting deleted entries.
+- Explicit consent before AI reflection submission, honest retryable provider-error states, and clearer manual-backup wording.
+- Static crisis-support response that bypasses Gemini, with client rendering that does not save it as AI-generated counsel.
+- `/api/counsel` with the legacy `/api/spiritual-guidance` alias, strict request validation, 32 KB JSON parser limit, sanitized parser/provider errors, and bounded Gemini requests.
+- Privacy and deletion disclosures in the README and account UI.
+
 ## [1.1.0] - 2026-10-23
 
 ### Added — Sprint 007: Phase 3 Auth & Local Data Import

@@ -15,27 +15,31 @@ import {
 import {
   apiRateLimiter,
   aiRateLimiter,
-  bodySizeLimit,
   requestLogger,
   canAffordAiRequest,
   recordSpendUsd,
   getDailySpendUsd,
   spendCapRemainingUsd,
 } from "./src/utils/apiSecurity";
+import {
+  CRISIS_SUPPORT_RESPONSE,
+  detectsImmediateCrisisRisk,
+} from "./src/utils/crisisSupport";
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.set("trust proxy", process.env.VERCEL === "1" ? 1 : false);
 app.use(requestLogger);
-app.use(bodySizeLimit);
 
 // Rate limit all /api/* routes (IP-based). Stricter limit for AI endpoints.
 app.use("/api/*", apiRateLimiter);
+app.use("/api/counsel", aiRateLimiter);
 app.use("/api/spiritual-guidance", aiRateLimiter);
 app.use("/api/daily-contemplation", aiRateLimiter);
+app.use(express.json({ limit: "32kb" }));
 
 // Lazy-initialized Gemini client with telemetry header
 let aiClient: GoogleGenAI | null = null;
@@ -49,6 +53,8 @@ function getGenAI(): GoogleGenAI | null {
         headers: {
           "User-Agent": "aistudio-build",
         },
+        timeout: 20_000,
+        retryOptions: { attempts: 1 },
       },
     });
   }
@@ -266,7 +272,7 @@ Selected theme: ${chosenTheme}`;
     res.status(500).json({ error: safe.message, code: safe.code });
   }
 });
-app.post("/api/spiritual-guidance", async (req, res) => {
+const handleCounselRequest: express.RequestHandler = async (req, res) => {
   try {
     // Zod schema validation — fail closed on invalid payloads.
     const parseResult = SpiritualGuidanceRequestSchema.safeParse(req.body);
@@ -278,6 +284,10 @@ app.post("/api/spiritual-guidance", async (req, res) => {
       });
     }
     const { entryText, theme, emotion } = parseResult.data;
+
+    if (detectsImmediateCrisisRisk(entryText)) {
+      return res.json(CRISIS_SUPPORT_RESPONSE);
+    }
 
     // Spend cap check — refuse AI calls once the daily Gemini budget is exhausted.
     if (!canAffordAiRequest(0.01)) {
@@ -387,19 +397,39 @@ Please generate a thoughtful, compassionate pastoral response with targeted scri
       ...parsed,
       isAIGenerated: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     const safe = sanitizeError(error);
-    console.error("Error in /api/spiritual-guidance:", safe.code, safe.message);
-    // Fail closed: never leak provider internals or stack traces to the client.
-    const fallback = FALLBACK_RESPONSES.spiritual_strength;
-    return res.status(502).json({
-      ...fallback,
-      isAIGenerated: false,
-      error: safe.message,
-      code: safe.code,
-      note: "Biblically formulated theological counsel provided.",
-    });
+    console.error("Error in /api/counsel:", safe.code, safe.message);
+    return res.status(502).json({ error: safe.message, code: safe.code });
   }
+};
+
+app.post("/api/counsel", handleCounselRequest);
+app.post("/api/spiritual-guidance", handleCounselRequest);
+
+app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  const status =
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof error.status === "number"
+      ? error.status
+      : 500;
+
+  if (status === 400) {
+    return res.status(400).json({ error: "invalid_json", code: "INVALID_JSON" });
+  }
+  if (status === 413) {
+    return res.status(413).json({ error: "payload_too_large", code: "PAYLOAD_TOO_LARGE" });
+  }
+
+  const safe = sanitizeError(error);
+  console.error("Error in request parsing:", safe.code, safe.message);
+  return res.status(500).json({ error: safe.message, code: safe.code });
 });
 
 // Vite middleware in dev or static files in production

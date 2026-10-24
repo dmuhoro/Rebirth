@@ -18,6 +18,7 @@ import {
 import { TheologicalTheme, AIGeneratedGuidance } from "../types";
 import { useDevotional } from "../context/DevotionalContext";
 import { triggerHaptic } from "../utils/haptics";
+import { CrisisSupportResponse } from "../utils/crisisSupport";
 
 interface NotepadViewProps {
   onOpenPlayer: () => void;
@@ -42,6 +43,49 @@ const SAMPLE_PROMPTS = [
   "My view of Jesus has felt distant and small lately; help me understand His cosmic supremacy and uncreated divinity...",
 ];
 
+function isCrisisSupportResponse(value: unknown): value is CrisisSupportResponse {
+  if (typeof value !== "object" || value === null) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    response.crisisDetected === true &&
+    typeof response.title === "string" &&
+    typeof response.message === "string" &&
+    Array.isArray(response.resources) &&
+    response.resources.every(
+      (resource: unknown) =>
+        typeof resource === "object" &&
+        resource !== null &&
+        "label" in resource &&
+        typeof resource.label === "string" &&
+        "href" in resource &&
+        typeof resource.href === "string" &&
+        resource.href.startsWith("https://"),
+    )
+  );
+}
+
+function isGuidanceResponse(value: unknown): value is AIGeneratedGuidance {
+  if (typeof value !== "object" || value === null) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    typeof response.pastoralCounsel === "string" &&
+    typeof response.customPrayer === "string" &&
+    typeof response.breathPrayer === "string" &&
+    Array.isArray(response.scriptures) &&
+    response.scriptures.every(
+      (scripture: unknown) =>
+        typeof scripture === "object" &&
+        scripture !== null &&
+        "reference" in scripture &&
+        typeof scripture.reference === "string" &&
+        "text" in scripture &&
+        typeof scripture.text === "string" &&
+        "theologicalContext" in scripture &&
+        typeof scripture.theologicalContext === "string",
+    )
+  );
+}
+
 export const NotepadView: React.FC<NotepadViewProps> = ({
   onOpenPlayer,
   onNavigateToJournal,
@@ -49,7 +93,13 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
   initialTheme,
   onClearInitialPrompt,
 }) => {
-  const { playTrack, addJournalEntry, toggleFavoriteEntry, favoriteEntryIds } = useDevotional();
+  const {
+    playTrack,
+    addJournalEntry,
+    toggleFavoriteEntry,
+    favoriteEntryIds,
+    localDataResetToken,
+  } = useDevotional();
 
   const [feelingsText, setFeelingsText] = useState("");
   const [selectedEmotion, setSelectedEmotion] = useState("Weary & Faint");
@@ -60,6 +110,13 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
   const [guidanceResult, setGuidanceResult] = useState<AIGeneratedGuidance | null>(null);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
+  const [crisisSupport, setCrisisSupport] = useState<CrisisSupportResponse | null>(null);
+  const [hasAiConsent, setHasAiConsent] = useState(false);
+
+  const updateFeelingsText = (value: string) => {
+    setFeelingsText(value);
+    setHasAiConsent(false);
+  };
 
   // Pre-populate when initialVersePrompt is passed from Daily Contemplation
   useEffect(() => {
@@ -74,6 +131,17 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
     }
   }, [initialVersePrompt, initialTheme]);
 
+  useEffect(() => {
+    if (localDataResetToken === 0) return;
+    setFeelingsText("");
+    setGuidanceResult(null);
+    setSavedEntryId(null);
+    setErrorNotice(null);
+    setCrisisSupport(null);
+    setHasAiConsent(false);
+    onClearInitialPrompt?.();
+  }, [localDataResetToken, onClearInitialPrompt]);
+
   const handleSelectEmotion = (label: string, defaultTheme: TheologicalTheme) => {
     triggerHaptic("selection");
     setSelectedEmotion(label);
@@ -86,15 +154,17 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
   };
 
   const handleGenerate = async () => {
-    if (!feelingsText.trim()) return;
+    if (!feelingsText.trim() || !hasAiConsent) return;
 
     triggerHaptic("medium");
     setLoading(true);
     setErrorNotice(null);
     setSavedEntryId(null);
+    setGuidanceResult(null);
+    setCrisisSupport(null);
 
     try {
-      const response = await fetch("/api/spiritual-guidance", {
+      const response = await fetch("/api/counsel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,10 +175,18 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+        throw new Error("Counsel request failed.");
       }
 
-      const data: AIGeneratedGuidance = await response.json();
+      const data: unknown = await response.json();
+      if (isCrisisSupportResponse(data)) {
+        setCrisisSupport(data);
+        triggerHaptic("warning");
+        return;
+      }
+      if (!isGuidanceResponse(data)) {
+        throw new Error("Counsel response was invalid.");
+      }
       setGuidanceResult(data);
 
       // Auto-save to persistent journal
@@ -120,9 +198,12 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
       );
       setSavedEntryId(created.id);
       triggerHaptic("success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating guidance:", err);
-      setErrorNotice("Could not connect to AI service. Using grounded theological counsel.");
+      setCrisisSupport(null);
+      setErrorNotice(
+        "A response could not be generated. Your reflection is still here and was not saved. Check your connection and retry.",
+      );
       triggerHaptic("warning");
     } finally {
       setLoading(false);
@@ -267,7 +348,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
             <button
               onClick={() => {
                 triggerHaptic("selection");
-                setFeelingsText("");
+                updateFeelingsText("");
                 if (onClearInitialPrompt) onClearInitialPrompt();
               }}
               className="text-[11px] text-[#7c7769] hover:text-red-400"
@@ -281,7 +362,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
           id="notepad-feelings-input"
           rows={5}
           value={feelingsText}
-          onChange={(e) => setFeelingsText(e.target.value)}
+          onChange={(e) => updateFeelingsText(e.target.value)}
           placeholder="Speak candidly before the Lord... Where do you feel dry, heavy, repentant, or in need of Christ's uncreated strength?"
           className="w-full p-4 rounded-2xl bg-[#12151e] border border-[#262d3e] text-sm text-[#f7f4ec] placeholder-[#6d685c] focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] font-serif-reading leading-relaxed resize-none shadow-inner"
         />
@@ -297,7 +378,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
                 key={pIdx}
                 onClick={() => {
                   triggerHaptic("selection");
-                  setFeelingsText(prompt);
+                  updateFeelingsText(prompt);
                 }}
                 className="text-[11px] text-left text-[#9b9484] hover:text-[#e5c158] font-serif-reading italic block w-full truncate"
               >
@@ -308,13 +389,42 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
         </div>
       </div>
 
+      <div className="space-y-2 rounded-2xl border border-[#353023] bg-[#11141a] p-3">
+        <p className="text-xs leading-relaxed text-[#c9c4b7]">
+          Your reflection is sent to the Rebirth server when you choose to
+          generate. It may be processed by Google Gemini when that service is
+          configured. A successful response is saved in this device&apos;s
+          journal; it is not copied to your cloud backup unless you choose to
+          import it.
+          {" "}
+          <a
+            href="https://github.com/dmuhoro/Rebirth#privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#e5c158] underline"
+          >
+            Learn more about privacy
+          </a>
+          .
+        </p>
+        <label className="flex min-h-11 items-center gap-2 text-xs text-[#f7f4ec]">
+          <input
+            type="checkbox"
+            checked={hasAiConsent}
+            onChange={(event) => setHasAiConsent(event.target.checked)}
+            className="h-4 w-4 accent-[#d4af37]"
+          />
+          I understand and want to send this reflection for a response.
+        </label>
+      </div>
+
       {/* Generate Action Button */}
       <button
         id="notepad-generate-btn"
-        disabled={loading || feelingsText.trim().length === 0}
+        disabled={loading || feelingsText.trim().length === 0 || !hasAiConsent}
         onClick={handleGenerate}
         className={`w-full py-3.5 px-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-lg transition-all active:scale-95 ${
-          feelingsText.trim().length === 0 || loading
+          feelingsText.trim().length === 0 || loading || !hasAiConsent
             ? "bg-[#181d28] text-[#555d6e] cursor-not-allowed border border-[#242b3b]"
             : "bg-gradient-to-r from-[#f0ce6f] to-[#d4af37] text-[#0c0e12] hover:brightness-105"
         }`}
@@ -333,10 +443,47 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
       </button>
 
       {errorNotice && (
-        <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-200 flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{errorNotice}</span>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-xs text-amber-200">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {errorNotice}
+          </span>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading || !hasAiConsent}
+            className="min-h-11 shrink-0 rounded-lg border border-amber-300/40 px-3 font-semibold hover:bg-amber-100/10 disabled:opacity-50"
+          >
+            Retry
+          </button>
         </div>
+      )}
+
+      {crisisSupport && (
+        <section
+          aria-live="assertive"
+          className="space-y-3 rounded-2xl border border-rose-300/40 bg-rose-950/40 p-4 text-rose-50"
+        >
+          <h3 className="flex items-center gap-2 font-semibold">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            {crisisSupport.title}
+          </h3>
+          <p className="text-sm leading-relaxed">{crisisSupport.message}</p>
+          <ul className="space-y-2">
+            {crisisSupport.resources.map((resource) => (
+              <li key={resource.href}>
+                <a
+                  href={resource.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-h-11 inline-flex items-center text-sm font-semibold text-rose-200 underline"
+                >
+                  {resource.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Generated Spiritual Guidance Result */}
@@ -449,4 +596,3 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
     </div>
   );
 };
-

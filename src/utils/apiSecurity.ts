@@ -85,17 +85,6 @@ export const aiRateLimiter = rateLimit({
 });
 
 /**
- * Request body size limit middleware (1MB max).
- */
-export function bodySizeLimit(_req: Request, res: Response, next: NextFunction) {
-  const len = Number(_req.headers["content-length"] || "0");
-  if (len > 1_000_000) {
-    return res.status(413).json({ error: "payload_too_large", code: "PAYLOAD_TOO_LARGE" });
-  }
-  next();
-}
-
-/**
  * Structured request logger (no PII, no journal text).
  */
 export function requestLogger(_req: Request, res: Response, next: NextFunction) {

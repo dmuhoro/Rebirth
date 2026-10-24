@@ -6,10 +6,10 @@ import { z } from "zod";
  */
 
 export const SpiritualGuidanceRequestSchema = z.object({
-  entryText: z.string().min(1, "entryText is required").max(5000, "entryText too long"),
+  entryText: z.string().trim().min(1, "entryText is required").max(5000, "entryText too long"),
   theme: z.enum(["spiritual_strength", "repentance_transformation", "divinity_of_christ", "general"]).optional(),
-  emotion: z.string().max(100, "emotion too long").optional(),
-});
+  emotion: z.string().trim().max(100, "emotion too long").optional(),
+}).strict();
 
 export type SpiritualGuidanceRequest = z.infer<typeof SpiritualGuidanceRequestSchema>;
 

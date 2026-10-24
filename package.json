@@ -1,8 +1,12 @@
 {
   "name": "rebirth-devotional",
-  "description": "Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.",
-  "private": true,
   "version": "1.2.0",
+  "private": true,
+  "homepage": "https://rebirth-devotional.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmuhoro/Rebirth.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

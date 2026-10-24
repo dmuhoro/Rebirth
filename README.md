@@ -12,7 +12,7 @@
 
 ## Live deployment
 
-- **App:** [rebirth-devotional.vercel.app](https://rebirth-devotional.vercel.app/)
+- **Live App:** [https://rebirth-devotional.vercel.app](https://rebirth-devotional.vercel.app/)
 - **Vercel project:** [rebirth-devotional](https://vercel.com/dmuhor01/rebirth-devotional)
 - **Convex production deployment:** [accomplished-kiwi-69](https://dashboard.convex.dev/t/dmuhoro/rebirth/accomplished-kiwi-69)
 
@@ -24,6 +24,8 @@ secrets/configuration in Vercel and Convex before those integrations can be used
 
 ## 📖 Recommended Repository Details
 
+* **Live App:** [https://rebirth-devotional.vercel.app](https://rebirth-devotional.vercel.app)  
+* **GitHub Repository:** [https://github.com/dmuhoro/Rebirth](https://github.com/dmuhoro/Rebirth)  
 * **Repository Name:** `rebirth-devotional`
 * **Short Description:** *Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.*
 * **Repository Topics:**

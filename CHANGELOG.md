@@ -4,6 +4,12 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Verification — Sprint 011 P0 launch acceptance
+- Deployed the latest `main` revision to Vercel production and confirmed the live health endpoint.
+- Installed the production PWA on a connected Android phone; service worker controlled the installed app, and a simulated offline reload opened cached devotional content in guest mode.
+- Android Web Speech reported active with the display off during a short check, but no Rebirth Android system media session/lock-screen controls were observed; secure lock-screen behavior and audible output still need human confirmation.
+- Google sign-in advanced past the redirect mismatch per the developer, but persisted authenticated state was not independently verified. Two-client Convex backup/restore was not run because both clients and permission for a disposable account test entry were unavailable.
+
 ## [1.2.0] - 2026-10-24
 
 ### Added — Sprint 009: Trusted Private Reflection & Reliable Backup

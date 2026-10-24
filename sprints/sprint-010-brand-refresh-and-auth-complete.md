@@ -17,7 +17,8 @@ Refresh the product identity with the new Rebirth brand kit and ensure all authe
 - `npm test` — passed, 11 files and 64 tests
 - `npm run build` — passed
 - Convex env vars verified in production (accomplished-kiwi-69)
-- All three auth methods ready for testing
+- Google callback now advances past the reported `redirect_uri_mismatch` according to the developer. A completed callback, persisted authenticated session, and account data flow still require end-to-end verification.
+- Email magic-link configuration is recorded as verified by the original setup, but a real-user sign-in round trip was not re-tested during Sprint 011.
 
 ## Status
-Brand refresh applied, auth fully configured for production. Ready for real user testing.
+Brand refresh applied and Google OAuth configuration corrected. Guest mode is available. Full auth acceptance and cross-device data verification remain pending.

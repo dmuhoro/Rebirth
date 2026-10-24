@@ -16,9 +16,12 @@
 - **Vercel project:** [rebirth-devotional](https://vercel.com/dmuhor01/rebirth-devotional)
 - **Convex production deployment:** [accomplished-kiwi-69](https://dashboard.convex.dev/t/dmuhoro/rebirth/accomplished-kiwi-69)
 
-The production PWA and API health endpoint are deployed. Guest mode is available;
-AI, Google sign-in, email delivery, and Web Push require operator-managed
-secrets/configuration in Vercel and Convex before those integrations can be used.
+The production PWA and API health endpoint are deployed. Google OAuth is
+configured, and the developer reports that the redirect mismatch is resolved;
+the complete sign-in/session flow still needs end-to-end confirmation. Guest
+mode is available. Gemini counsel is currently unavailable in production
+because `GEMINI_API_KEY` is not configured. Email magic-link and Web Push
+delivery still need live acceptance testing.
 
 ---
 

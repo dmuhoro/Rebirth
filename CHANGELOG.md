@@ -4,6 +4,8 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-24
+
 ### Added — Sprint 009: Trusted Private Reflection & Reliable Backup
 - Versioned JSON and Markdown exports, local JSON restore, expanded Convex backup snapshots, and deletion safeguards that prevent older journal backups from resurrecting deleted entries.
 - Explicit consent before AI reflection submission, honest retryable provider-error states, and clearer manual-backup wording.

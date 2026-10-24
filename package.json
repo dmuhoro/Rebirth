@@ -2,7 +2,7 @@
   "name": "rebirth-devotional",
   "description": "Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

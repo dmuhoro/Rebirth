@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenAccount}
-            aria-label="Open account and sync settings"
+            aria-label="Open account and manual backup settings"
             className="rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#e5c158]"
           >
             <UserRound className="h-4 w-4" />

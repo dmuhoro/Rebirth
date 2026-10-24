@@ -16,12 +16,14 @@ export interface LocalDataImport {
   lessonProgress: Record<string, number>;
   completedLessonIds: string[];
   bookmarkedScriptureIds: string[];
+  deletedJournalIds: string[];
 }
 
 export interface MigrationResult {
   importedJournals: number;
   importedProgress: number;
   importedBookmarks: number;
+  deletedJournals: number;
 }
 
 interface SyncContextType {
@@ -45,18 +47,17 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 /**
- * Convex sync provider (Phase 3).
+ * Convex account provider for explicit backup and restore (Phase 3).
  *
  * Uses Convex auth for identity:
- *   - Signed in: userId from Convex auth, data syncs to Convex (ownership enforced).
- *   - Guest: userId = null, data stays in localStorage only (never written to Convex).
+ *   - Signed in: userId from Convex auth; explicit imports are ownership-enforced.
+ *   - Guest: userId = null; data stays in localStorage only.
  *
  * Import is idempotent and may be retried after an interrupted migration.
  */
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [userId, setUserId] = useState<string | null>(null);
-  const [isSynced, setIsSynced] = useState(false);
 
   // Fetch the current user's profile to get their userId.
   const profile = useQuery(
@@ -94,11 +95,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         100,
       );
       const bookmarks = chunk(data.bookmarkedScriptureIds, 100);
-      const batchCount = Math.max(journals.length, progress.length, bookmarks.length);
+      const deletedJournals = chunk(data.deletedJournalIds, 100);
+      const batchCount = Math.max(
+        journals.length,
+        progress.length,
+        bookmarks.length,
+        deletedJournals.length,
+      );
       const result: MigrationResult = {
         importedJournals: 0,
         importedProgress: 0,
         importedBookmarks: 0,
+        deletedJournals: 0,
       };
 
       for (let index = 0; index < batchCount; index++) {
@@ -109,12 +117,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           })),
           lessonProgress: progress[index] ?? [],
           bookmarkedScriptureIds: bookmarks[index] ?? [],
+          deletedJournalIds: deletedJournals[index] ?? [],
         });
         result.importedJournals += batchResult.importedJournals;
         result.importedProgress += batchResult.importedProgress;
         result.importedBookmarks += batchResult.importedBookmarks;
+        result.deletedJournals += batchResult.deletedJournals;
       }
-      setIsSynced(true);
       return result;
     },
     [userId],
@@ -123,7 +132,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   return (
     <SyncContext.Provider
       value={{
-        isSynced,
         userId,
         isAuthenticated,
         isLoading,

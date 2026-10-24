@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useConvexAuth as useAuth } from "@convex-dev/auth/react";
 import { DevotionalProvider } from "./context/DevotionalContext";
 import { SyncProvider } from "./lib/sync";
@@ -20,6 +20,10 @@ function DevotionalApp({ onOpenSignIn }: { onOpenSignIn: () => void }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [prepopulatedPrompt, setPrepopulatedPrompt] = useState<string | null>(null);
   const [prepopulatedTheme, setPrepopulatedTheme] = useState<TheologicalTheme | null>(null);
+  const clearInitialPrompt = useCallback(() => {
+    setPrepopulatedPrompt(null);
+    setPrepopulatedTheme(null);
+  }, []);
 
   const handleReflectOnDailyVerse = (contemplation: DailyContemplation) => {
     triggerHaptic("medium");
@@ -54,10 +58,7 @@ function DevotionalApp({ onOpenSignIn }: { onOpenSignIn: () => void }) {
             onNavigateToJournal={() => setActiveTab("journal")}
             initialVersePrompt={prepopulatedPrompt}
             initialTheme={prepopulatedTheme}
-            onClearInitialPrompt={() => {
-              setPrepopulatedPrompt(null);
-              setPrepopulatedTheme(null);
-            }}
+            onClearInitialPrompt={clearInitialPrompt}
           />
         )}
         {activeTab === "journal" && (

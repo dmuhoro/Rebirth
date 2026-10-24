@@ -13,6 +13,10 @@ import {
   TheologicalTheme,
 } from "../types";
 import { speechService, SpeechProgress } from "../services/speechService";
+import {
+  filterBackupJournalData,
+  type BackupLocalData,
+} from "../lib/backup";
 
 const STORAGE_KEYS = {
   JOURNAL: "selah_devotional_journal_v1",
@@ -21,41 +25,9 @@ const STORAGE_KEYS = {
   BOOKMARKS: "selah_scripture_bookmarks_v1",
   FAVORITES: "selah_favorite_prayers_v1",
   SPEECH_RATE: "selah_speech_rate_v1",
+  DELETED_JOURNAL_IDS: "rebirth_deleted_journal_ids_v1",
+  DELETED_BEFORE: "rebirth_deleted_before_v1",
 };
-
-const INITIAL_JOURNAL_ENTRIES: JournalEntry[] = [
-  {
-    id: "entry-seed-1",
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2 days ago
-    feelings:
-      "Feeling completely overwhelmed by ministry duties and work pressure. My mind feels constantly hurried, and I find myself reading the Bible like a task checklist rather than resting in His presence.",
-    theme: "spiritual_strength",
-    emotionTag: "Weary & Depleted",
-    guidance: {
-      pastoralCounsel:
-        "The hurry of the modern mind is one of the enemy's most subtle weapons. When spiritual exhaustion sets in, our default reaction is usually to redouble human striving. Yet God speaks to tired exiles in Isaiah 40:29: 'He gives power to the faint, and to him who has no might He increases strength.' Remember the Hebrew concept of 'Qavah'—not frantic self-improvement, but the intentional braiding of your depleted strength into the infinite eternity of God. You do not need to perform for the Father; you are invited to sit under the shadow of His wings.",
-      scriptures: [
-        {
-          reference: "Isaiah 40:29-31",
-          text: "He gives power to the faint, and to him who has no might he increases strength... but they who wait for the LORD shall renew their strength; they shall mount up with wings like eagles.",
-          theologicalContext:
-            "Waiting on the Lord is an active exchange: surrendering finite exhaustion to receive His inexhaustible Spirit.",
-        },
-        {
-          reference: "Matthew 11:28-30",
-          text: "Come to me, all who labor and are heavy laden, and I will give you rest. Take my yoke upon you, and learn from me, for I am gentle and lowly in heart, and you will find rest for your souls.",
-          theologicalContext:
-            "Christ's yoke is light because He shoulders the weight with us. Rest is found in His person, not in our ideal conditions.",
-        },
-      ],
-      customPrayer:
-        "Heavenly Father, I confess that my soul has been running ahead of Your Spirit. Forgive me for confusing my busy activity with true spiritual fruitfulness. Today, I set down the heavy burden of trying to sustain myself. Lord Jesus, You are gentle and lowly of heart. I step into Your yoke. Fill the empty wells of my soul with Your living water, and teach me the peace of abiding in You. Amen.",
-      breathPrayer: "Inhale: Lord Jesus, gentle and lowly... Exhale: I lay down my burden and receive Your rest.",
-      isAIGenerated: false,
-    },
-    isFavorite: true,
-  },
-];
 
 interface DevotionalContextType {
   // Audio state
@@ -76,11 +48,22 @@ interface DevotionalContextType {
   lessonProgress: Record<string, number>;
   bookmarkedScriptureIds: string[];
   favoriteEntryIds: string[];
+  deletedJournalIds: string[];
+  deletedBefore: number | null;
+  localDataResetToken: number;
   mergeCloudData: (
     entries: JournalEntry[],
     progress: Record<string, number>,
     bookmarks: string[],
+    deletedIds?: string[],
+    deletedBefore?: number | null,
   ) => void;
+  restoreLocalBackup: (
+    backup: BackupLocalData,
+    cloudDeletedBefore?: number | null,
+    cloudDeletedIds?: string[],
+  ) => void;
+  clearLocalData: (deletedBefore: number) => void;
 
   // Mutations
   addJournalEntry: (
@@ -107,16 +90,21 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [playbackSpeed, setPlaybackSpeedState] = useState<number>(1.0);
   const [progress, setProgress] = useState<SpeechProgress | null>(null);
+  const [localDataResetToken, setLocalDataResetToken] = useState(0);
 
   // Persistence State
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.JOURNAL);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        return (JSON.parse(saved) as JournalEntry[]).filter(
+          (entry) => entry.id !== "entry-seed-1",
+        );
+      }
     } catch (e) {
       console.warn("Failed to load journal entries from localStorage:", e);
     }
-    return INITIAL_JOURNAL_ENTRIES;
+    return [];
   });
 
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
@@ -146,20 +134,50 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn("Failed to load bookmarks from localStorage:", e);
     }
-    return ["study-isaiah-40", "study-colossians-1"];
+    return [];
   });
 
   const [favoriteEntryIds, setFavoriteEntryIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.FAVORITES);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const favorites: unknown = JSON.parse(saved);
+        if (Array.isArray(favorites)) {
+          return favorites.filter(
+            (id): id is string => typeof id === "string" && id !== "entry-seed-1",
+          );
+        }
+      }
     } catch (e) {
       console.warn("Failed to load favorites from localStorage:", e);
     }
-    return ["entry-seed-1"];
+    return [];
   });
 
-  // Sync to localStorage
+  const [deletedJournalIds, setDeletedJournalIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.DELETED_JOURNAL_IDS);
+      if (saved) {
+        return [...new Set([...JSON.parse(saved), "entry-seed-1"])];
+      }
+    } catch (e) {
+      console.warn("Failed to load deleted journal IDs from localStorage:", e);
+    }
+    return ["entry-seed-1"];
+  });
+  const [deletedBefore, setDeletedBefore] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.DELETED_BEFORE);
+      if (saved === null) return null;
+      const value = Number(saved);
+      return Number.isFinite(value) ? value : null;
+    } catch (e) {
+      console.warn("Failed to load the local deletion marker:", e);
+      return null;
+    }
+  });
+
+  // Persist private device data locally until the user requests a cloud backup.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.JOURNAL, JSON.stringify(journalEntries));
@@ -199,6 +217,32 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       console.warn("Error saving favorites to localStorage:", e);
     }
   }, [favoriteEntryIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.DELETED_JOURNAL_IDS,
+        JSON.stringify(deletedJournalIds),
+      );
+    } catch (e) {
+      console.warn("Error saving deleted journal IDs to localStorage:", e);
+    }
+  }, [deletedJournalIds]);
+
+  useEffect(() => {
+    try {
+      if (deletedBefore === null) {
+        localStorage.removeItem(STORAGE_KEYS.DELETED_BEFORE);
+      } else {
+        localStorage.setItem(
+          STORAGE_KEYS.DELETED_BEFORE,
+          String(deletedBefore),
+        );
+      }
+    } catch (e) {
+      console.warn("Error saving the local deletion marker:", e);
+    }
+  }, [deletedBefore]);
 
   // Load saved speech rate
   useEffect(() => {
@@ -319,6 +363,9 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
   const deleteJournalEntry = useCallback((id: string) => {
     setJournalEntries((prev) => prev.filter((e) => e.id !== id));
     setFavoriteEntryIds((prev) => prev.filter((fid) => fid !== id));
+    setDeletedJournalIds((prev) =>
+      prev.includes(id) ? prev : [...prev, id],
+    );
   }, []);
 
   const toggleFavoriteEntry = useCallback((id: string) => {
@@ -377,11 +424,37 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       cloudEntries: JournalEntry[],
       cloudProgress: Record<string, number>,
       cloudBookmarks: string[],
+      cloudDeletedIds: string[] = [],
+      cloudDeletedBefore: number | null = null,
     ) => {
+      const effectiveDeletedBefore =
+        deletedBefore === null
+          ? cloudDeletedBefore
+          : cloudDeletedBefore === null
+            ? deletedBefore
+            : Math.max(deletedBefore, cloudDeletedBefore);
+      const staleLocalIds =
+        effectiveDeletedBefore === null
+          ? []
+          : journalEntries
+              .filter((entry) => entry.timestamp <= effectiveDeletedBefore)
+              .map((entry) => entry.id);
+      const deletedIds = new Set([
+        ...deletedJournalIds,
+        ...cloudDeletedIds,
+        ...staleLocalIds,
+      ]);
+      setDeletedJournalIds([...deletedIds]);
+      if (effectiveDeletedBefore !== null) {
+        setDeletedBefore(effectiveDeletedBefore);
+      }
       setJournalEntries((localEntries) => {
         const merged = new Map<string, JournalEntry>();
-        for (const entry of localEntries) merged.set(entry.id, entry);
+        for (const entry of localEntries) {
+          if (!deletedIds.has(entry.id)) merged.set(entry.id, entry);
+        }
         for (const entry of cloudEntries) {
+          if (deletedIds.has(entry.id)) continue;
           merged.set(entry.id, entry);
         }
         return [...merged.values()].sort((a, b) => b.timestamp - a.timestamp);
@@ -402,9 +475,79 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       setBookmarkedScriptureIds((localBookmarks) => [
         ...new Set([...localBookmarks, ...cloudBookmarks]),
       ]);
+      setFavoriteEntryIds((localFavorites) => [
+        ...new Set(
+          [...localFavorites, ...cloudEntries.filter((entry) => entry.isFavorite).map((entry) => entry.id)]
+            .filter((id) => !deletedIds.has(id)),
+        ),
+      ]);
     },
-    [],
+    [deletedBefore, deletedJournalIds, journalEntries],
   );
+
+  const restoreLocalBackup = useCallback(
+    (
+      backup: BackupLocalData,
+      cloudDeletedBefore: number | null = null,
+      cloudDeletedIds: string[] = [],
+    ) => {
+      const effectiveDeletedBefore = [
+        deletedBefore,
+        backup.deletedBefore,
+        cloudDeletedBefore,
+      ].reduce<number | null>(
+        (latest, value) =>
+          value === null ? latest : latest === null ? value : Math.max(latest, value),
+        null,
+      );
+      const filteredBackup = filterBackupJournalData(
+        backup.journalEntries,
+        [...deletedJournalIds, ...backup.deletedJournalIds],
+        cloudDeletedIds,
+        effectiveDeletedBefore,
+      );
+      mergeCloudData(
+        filteredBackup.journalEntries,
+        backup.lessonProgress,
+        backup.bookmarkedScriptureIds,
+        filteredBackup.deletedJournalIds,
+        effectiveDeletedBefore,
+      );
+      setCompletedLessonIds((current) => [
+        ...new Set([...current, ...backup.completedLessonIds]),
+      ]);
+      setFavoriteEntryIds((current) => {
+        return [
+          ...new Set([...current, ...backup.favoriteEntryIds]),
+        ].filter((id) => !filteredBackup.deletedJournalIds.includes(id));
+      });
+      setPlaybackSpeedState(backup.speechRate);
+      speechService.setRate(backup.speechRate);
+    },
+    [deletedBefore, deletedJournalIds, mergeCloudData],
+  );
+
+  const clearLocalData = useCallback((deletionTime: number) => {
+    for (const key of Object.values(STORAGE_KEYS).filter(
+      (key) => key !== STORAGE_KEYS.DELETED_BEFORE,
+    )) {
+      localStorage.removeItem(key);
+    }
+    localStorage.setItem(STORAGE_KEYS.DELETED_BEFORE, String(deletionTime));
+    speechService.stop();
+    setActiveTrack(null);
+    setPlaybackState("idle");
+    setProgress(null);
+    setPlaybackSpeedState(1);
+    setJournalEntries([]);
+    setCompletedLessonIds([]);
+    setLessonProgress({});
+    setBookmarkedScriptureIds([]);
+    setFavoriteEntryIds([]);
+    setDeletedJournalIds([]);
+    setDeletedBefore(deletionTime);
+    setLocalDataResetToken((current) => current + 1);
+  }, []);
 
   return (
     <DevotionalContext.Provider
@@ -424,7 +567,12 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
         lessonProgress,
         bookmarkedScriptureIds,
         favoriteEntryIds,
+        deletedJournalIds,
+        deletedBefore,
+        localDataResetToken,
         mergeCloudData,
+        restoreLocalBackup,
+        clearLocalData,
         addJournalEntry,
         deleteJournalEntry,
         toggleFavoriteEntry,

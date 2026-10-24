@@ -8,7 +8,7 @@ import { triggerHaptic } from "../utils/haptics";
  * Rebirth AuthView (Phase 3).
  *
  * Sign-in via email magic link (passwordless).
- * Users may also continue as guest (localStorage only, no Convex sync).
+ * Users may also continue as a guest with device-only data.
  *
  * Theological boundary: this view contains no theological claims — it is a
  * pure identity gate. All AI pastoral content remains guarded by the three
@@ -108,8 +108,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
           <p className="text-sm text-[#b8b3a4]">{profile.email}</p>
         )}
         <p className="text-sm text-[#b8b3a4] text-center max-w-sm">
-          Your reflections, bookmarks, and progress are syncing securely across
-          devices.
+          Your data stays on this device unless you choose to use manual backup
+          and restore from the account panel.
         </p>
         <button
           onClick={handleSignOut}

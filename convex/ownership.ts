@@ -11,6 +11,13 @@ export async function requireAuth(
   if (!userId) {
     throw new Error("Authentication required");
   }
+  const deletionMarker = await ctx.db
+    .query("userDataDeletionMarkers")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .first();
+  if (deletionMarker?.deleting) {
+    throw new Error("Data deletion is in progress.");
+  }
   return userId;
 }
 

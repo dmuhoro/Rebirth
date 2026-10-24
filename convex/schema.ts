@@ -49,6 +49,20 @@ export default defineSchema({
     .index("by_userId_localId", ["userId", "localId"])
     .index("by_synced", ["synced"]),
 
+  journalDeletionTombstones: defineTable({
+    userId: v.string(),
+    localId: v.string(),
+    deletedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_localId", ["userId", "localId"]),
+
+  userDataDeletionMarkers: defineTable({
+    userId: v.string(),
+    deletedBefore: v.number(),
+    deleting: v.optional(v.boolean()),
+  }).index("by_userId", ["userId"]),
+
   // Lesson / scripture study progress
   lessonProgress: defineTable({
     userId: v.string(),

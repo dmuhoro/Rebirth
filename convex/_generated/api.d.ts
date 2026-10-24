@@ -18,6 +18,7 @@ import type * as push from "../push.js";
 import type * as pushActions from "../pushActions.js";
 import type * as review from "../review.js";
 import type * as sync from "../sync.js";
+import type * as syncHelpers from "../syncHelpers.js";
 import type * as users from "../users.js";
 
 import type {
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   pushActions: typeof pushActions;
   review: typeof review;
   sync: typeof sync;
+  syncHelpers: typeof syncHelpers;
   users: typeof users;
 }>;
 

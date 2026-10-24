@@ -61,3 +61,20 @@ export async function enableWebPush(
 
   await saveSubscription({ endpoint: subscription.endpoint, p256dh, auth });
 }
+
+export async function removeWebPushSubscription(): Promise<void> {
+  if (
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
+    return;
+  }
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  if (subscription) {
+    const removed = await subscription.unsubscribe();
+    if (!removed) {
+      throw new Error("The browser could not remove this device's notification subscription.");
+    }
+  }
+}

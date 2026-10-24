@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Rebirth mark">
+  
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M128 198 C128 164 128 130 128 86" stroke="#FFFFFF" stroke-width="11"/>
+    <path d="M128 151 C92 150 65 128 60 91 C96 92 120 111 128 151 Z" stroke="#FFFFFF" stroke-width="10"/>
+    <path d="M128 128 C164 127 190 104 195 68 C160 70 137 89 128 128 Z" stroke="#FFFFFF" stroke-width="10"/>
+    <path d="M128 78 C128 61 128 48 128 37" stroke="#B9A06C" stroke-width="8"/>
+    <path d="M128 37 L116 52" stroke="#B9A06C" stroke-width="8"/>
+    <path d="M128 37 L140 52" stroke="#B9A06C" stroke-width="8"/>
+  </g>
+</svg>

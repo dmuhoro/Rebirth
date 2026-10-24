@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 120" width="640" height="120" role="img" aria-label="Rebirth">
+  <g transform="translate(12 16) scale(0.34)">
+    <path d="M128 198 C128 164 128 130 128 86" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round"/>
+    <path d="M128 151 C92 150 65 128 60 91 C96 92 120 111 128 151 Z" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M128 128 C164 127 190 104 195 68 C160 70 137 89 128 128 Z" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M128 78 L128 37 M128 37 L116 52 M128 37 L140 52" fill="none" stroke="#B9A06C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="112" y="81" fill="#FFFFFF" font-family="Inter, Avenir Next, Helvetica, Arial, sans-serif" font-size="58" font-weight="600" letter-spacing="-2">Rebirth</text>
+</svg>

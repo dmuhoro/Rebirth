@@ -98,9 +98,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
   if (isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#0c0e12] text-[#f7f4ec] p-4 flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-[#d4af37]/20 flex items-center justify-center border border-[#d4af37]/30">
-          <span className="text-[#e5c158] font-bold text-lg">🕊️</span>
-        </div>
+              <div className="w-12 h-12 rounded-full bg-[#1F4D36]/20 flex items-center justify-center border border-[#B9A06C]/30">
+                <img src="/brand/rebirth-mark-reversed.svg" alt="" aria-hidden="true" className="w-8 h-8" />
+              </div>
         <h2 className="text-xl font-semibold text-[#f7f4ec]">
           Welcome back
         </h2>
@@ -131,9 +131,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
     <div className="min-h-screen bg-[#0c0e12] text-[#f7f4ec] p-4 flex flex-col items-center justify-center">
       <div className="max-w-md w-full space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#d4af37]/20 flex items-center justify-center border border-[#d4af37]/30">
-            <span className="text-[#e5c158] font-bold text-lg">🕊️</span>
-          </div>
+            <div className="w-12 h-12 rounded-full bg-[#1F4D36]/20 flex items-center justify-center border border-[#B9A06C]/30">
+              <img src="/brand/rebirth-mark-reversed.svg" alt="" aria-hidden="true" className="w-8 h-8" />
+            </div>
           <h2 className="text-2xl font-semibold text-[#f7f4ec]">Rebirth</h2>
           <p className="text-sm text-[#b8b3a4] text-center">
             Meet God in the Word every day, in the state you are actually in.

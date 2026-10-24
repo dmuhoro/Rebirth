@@ -81,3 +81,18 @@ All notable changes to Rebirth are documented in this file.
 
 ## [1.0.0] - 2026-10-23 (baseline prototype)
 - Initial release: React 19, TypeScript strict, Vite, Tailwind v4, Express + Gemini, Web Speech audio, haptics, localStorage state, 3 Vitest suites, GitHub Actions CI.
+
+## [1.2.1] - 2025-10-24
+
+### Added
+- New brand identity (Sacred Minimalism) with updated logos, icons, and design tokens
+- Design tokens system with CSS variables and Inter/Newsreader typography
+- Complete PWA icon set including maskable icons
+
+### Changed
+- Updated header branding with new Rebirth wordmark
+- Replaced decorative marks in auth screens with new brand mark
+- Updated manifest and app metadata with new theme colors
+
+### Fixed
+- Auth fully configured for all methods (Google OAuth, Email magic links, Guest)

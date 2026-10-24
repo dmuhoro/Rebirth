@@ -1,15 +1,19 @@
 {
-  "name": "Rebirth — Contemplative Christian Devotional",
+  "name": "Rebirth \u2014 Scripture, Prayer & Reflection",
   "short_name": "Rebirth",
-  "description": "Offline-first Christian devotional with Scripture studies, private cloud backup, and AI-guided prayer for mobile web.",
+  "description": "A contemplative Christian devotional for Scripture study, prayer, reflection, and audio listening.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#0c0e12",
-  "background_color": "#0c0e12",
+  "theme_color": "#1F4D36",
+  "background_color": "#F6F3EE",
   "id": "/",
   "scope": "/",
-  "categories": ["lifestyle", "spirituality", "books-reference"],
+  "categories": [
+    "lifestyle",
+    "spirituality",
+    "books-reference"
+  ],
   "lang": "en",
   "dir": "ltr",
   "icons": [
@@ -60,6 +64,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/maskable-icon-512x512.png",

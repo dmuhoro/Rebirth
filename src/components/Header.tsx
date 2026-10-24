@@ -15,37 +15,32 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-[#0c0e12]/90 backdrop-blur-md border-b border-[#212631] px-4 py-3">
-      <div className="max-w-md mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-full bg-[#181d26] border border-[#d4af37]/30 flex items-center justify-center text-[#e5c158] shadow-inner">
-            <span className="font-display-title text-sm font-semibold tracking-widest">☧</span>
-          </div>
-          <div>
-            <div className="flex items-center space-x-1.5">
-              <h1 className="font-display-title text-base font-semibold text-[#f7f4ec] tracking-wide">
-                REBIRTH
-              </h1>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#202633] text-[#d4af37] font-medium border border-[#d4af37]/20">
-                Devotional
-              </span>
-            </div>
-            <p className="text-[11px] text-[#9b9484] tracking-tight">
+      <div className="max-w-md mx-auto flex items-center justify-between gap-2">
+        <div className="flex items-center min-w-0">
+          <div className="min-w-0">
+            <img
+              src="/brand/rebirth-logo-horizontal-reversed.svg"
+              alt="Rebirth"
+              className="h-8 w-auto max-w-[132px]"
+              width="132"
+              height="33"
+            />
+            <p className="hidden sm:block text-[10px] text-[#b8b3a4] tracking-tight mt-0.5">
               Christ-Centered Contemplation &amp; Audio
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 shrink-0">
           <button
             type="button"
             onClick={onOpenAccount}
             aria-label="Open account and manual backup settings"
-            className="rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#e5c158]"
+            className="rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#B9A06C]"
           >
             <UserRound className="h-4 w-4" />
           </button>
 
-          {/* Completed lessons badge */}
           {completedLessonIds.length > 0 && (
             <div
               className="flex items-center space-x-1 px-2 py-1 rounded-full bg-[#181d26] border border-[#2e3748] text-[11px] text-[#b8b3a4]"
@@ -56,20 +51,19 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
-          {/* Active Audio Indicator */}
           {activeTrack && (
             <button
               onClick={onOpenPlayer}
               className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 playbackState === "playing"
-                  ? "bg-[#252013] border-[#e5c158]/50 text-[#f3e8c9] animate-pulse"
+                  ? "bg-[#252013] border-[#B9A06C]/50 text-[#f3e8c9] animate-pulse"
                   : "bg-[#181d26] border-[#2e3748] text-[#c5c0b0]"
               }`}
               aria-label="Open audio player"
             >
               <Volume2
                 className={`w-3.5 h-3.5 ${
-                  playbackState === "playing" ? "text-[#e5c158]" : "text-[#9b9484]"
+                  playbackState === "playing" ? "text-[#B9A06C]" : "text-[#9b9484]"
                 }`}
               />
               <span className="max-w-[80px] truncate text-[11px]">

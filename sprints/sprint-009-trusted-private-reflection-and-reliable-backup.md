@@ -47,8 +47,13 @@ crisis resources without invoking the AI provider.
   and dependency comment warnings; output bundles were generated.
 - Focused crisis/API/backup run — passed, 4 files and 23 tests.
 - `git diff --check` — passed.
-- `npx convex codegen` was run during implementation to regenerate bindings.
-  This does not verify or claim a production deployment.
+- Vercel production deployment completed and is `READY`; `/api/health` returned
+  `{"status":"ok","hasApiKey":false}` and a benign `/api/counsel` smoke request
+  returned the configured non-AI response.
+- Convex production functions/schema deployed to
+  `accomplished-kiwi-69` (`https://accomplished-kiwi-69.eu-west-1.convex.cloud`).
+- The Convex CLI skipped its function-specific `tsc` check because the repo has
+  no `convex/tsconfig.json`; the repository-wide `npm run lint` check passed.
 
 ## Remaining limits and external verification
 
@@ -61,14 +66,16 @@ crisis resources without invoking the AI provider.
   limit.
 - Physical Android install/offline/lock-screen tests and two-device Convex
   restore verification were not performed in this environment.
-- Live Gemini, Google/email sign-in, and Web Push delivery depend on external
-  production configuration and were not verified by these local tests.
+- Gemini counsel, Google/email sign-in, and Web Push delivery remain
+  unverified: production has no Gemini API key (`hasApiKey:false`), and these
+  integrations depend on operator-managed provider configuration.
 - Speech remains browser-generated; pre-rendered, licensed narration assets
   were not added.
 - Cloud restore and import remain explicit manual operations, not live sync.
 
 ## Status
 
-Code and local test coverage for this sprint are complete. Production-wide
-quota guarantees and the physical-device/production integration checks above
-remain external follow-up work.
+Code is committed and pushed; Vercel and Convex production deployments are
+complete. Local automated checks are green. Production-wide quota guarantees,
+provider integrations, and physical-device verification remain external
+follow-up work.

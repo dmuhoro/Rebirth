@@ -4,6 +4,8 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-25
+
 ### Added — Native Android narration path
 - Capacitor Android bridge routes narration, progress, and playback controls to an Android foreground TextToSpeech service while web/PWA playback retains browser speech synthesis.
 - Android playback requires notification permission and an installed offline English voice; physical-device lock-screen acceptance remains pending.

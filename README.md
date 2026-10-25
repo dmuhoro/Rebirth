@@ -16,12 +16,17 @@
 - **Vercel project:** [rebirth-devotional](https://vercel.com/dmuhor01/rebirth-devotional)
 - **Convex production deployment:** [accomplished-kiwi-69](https://dashboard.convex.dev/t/dmuhoro/rebirth/accomplished-kiwi-69)
 
-The production PWA and API health endpoint are deployed. Google OAuth is
-configured, and the developer reports that the redirect mismatch is resolved;
-the complete sign-in/session flow still needs end-to-end confirmation. Guest
-mode is available. Gemini counsel is currently unavailable in production
-because `GEMINI_API_KEY` is not configured. Email magic-link and Web Push
-delivery still need live acceptance testing.
+The production PWA and API health endpoint are deployed. Google OAuth has been
+verified end to end in a supported browser: sign-in returns to Rebirth, and the
+account panel still reports a connected account after reload. A synthetic
+journal entry was manually imported to Convex from the primary client; restore
+on a second signed-in client and deletion propagation remain to be verified.
+Gemini is not configured in production (`hasApiKey: false`), so counsel uses
+the deterministic theological fallback rather than a live model. Email
+magic-link and Web Push delivery still need live acceptance testing. Native
+Android narration builds, but lock-screen playback is not yet device-verified;
+the connected test phone currently has 247 MB free, below Android's 1 GiB
+low-storage threshold for installing the APK.
 
 ---
 
@@ -183,7 +188,8 @@ without it Rebirth shows a configuration screen rather than a blank page. The
 development command writes it to `.env.local` (gitignored).
 
 For authentication, set these variables in the Convex deployment environment:
-`AUTH_SECRET`, `JWT_PRIVATE_KEY` (PKCS#8 RSA private key),
+`AUTH_SECRET`, `JWT_PRIVATE_KEY` (PKCS#8 RSA private key), and `JWKS` (the
+matching public key set),
 `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `RESEND_API_KEY`, and `EMAIL_FROM`.
 Register Google OAuth callback URLs using the Convex Auth site
 URL (`https://<deployment>.convex.site/api/auth/callback/google`). For local

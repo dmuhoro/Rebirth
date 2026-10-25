@@ -4,6 +4,26 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- The account and manual-backup dialog now constrains its height and scrolls on
+  short screens, keeping its heading and controls reachable.
+
+### Verification
+- Production Google sign-in returned to Rebirth, and the account panel reported
+  a connected account after a full page reload.
+- The primary client created one synthetic journal entry and explicitly
+  imported it to Convex: 1 journal entry imported, 0 progress records, 0
+  bookmarks, and 0 cloud deletions applied. The reflection contained no
+  personal data; production counsel returned its deterministic fallback because
+  Gemini is not configured.
+- `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
+- Native `:app:assembleDebug` succeeds with the full JDK 21 at
+  `~/.local/opt/jdk21`; the APK is 4.4 MB with `versionName 1.3.0` and
+  `targetSdk 36`. The connected Android phone has 247 MB free against
+  Android's 1 GiB low-storage threshold, so installation and lock-screen
+  acceptance remain blocked; second-client restore and test-entry deletion are
+  pending.
+
 ## [1.3.0] - 2026-10-25
 
 ### Added — Native Android narration path

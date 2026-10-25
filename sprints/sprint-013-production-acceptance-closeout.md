@@ -42,7 +42,7 @@ Date: 2026-10-25
   HTTP 403 (`validation_error`) because the configured sender domain is
   `gmail.com`, which Resend does not verify for sending. Configure
   `EMAIL_FROM` on a verified domain and repeat the send-and-click flow.
-- **Native Android:** the connected phone reports 349 MB free versus Android's
+- **Native Android:** the connected phone reports 335 MB free versus Android's
   1 GiB low-storage threshold. No Rebirth WebAPK is installed. Install the
   native APK only after at least 1.2 GB is available, then test offline voice,
   foreground-service controls, and narration with the screen securely locked.

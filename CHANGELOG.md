@@ -20,7 +20,7 @@ All notable changes to Rebirth are documented in this file.
 - Kept the PWA open across two production deployments. Reload picked up the
   new hashed frontend bundle (`index-D8iQLO4X.js` to `index-DV_8C6gs.js`).
   Standalone-PWA offline behavior after this deploy remains unverified.
-- The physical Android phone reports 349 MB free, below the 1 GiB low-storage
+- The physical Android phone reports 335 MB free, below the 1 GiB low-storage
   threshold. Native APK installation and lock-screen narration acceptance
   remain blocked.
 - A magic link was requested to the owner-provided test inbox. Resend rejected

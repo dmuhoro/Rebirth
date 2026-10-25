@@ -27,7 +27,7 @@ theological fallback rather than a live model. Web Push was configured and a
 test notification reached Android Chrome. Magic-link delivery is blocked
 because Resend rejects the current `gmail.com` sender domain as unverified.
 Native Android narration builds, but lock-screen playback is not yet
-device-verified; the connected phone currently reports 349 MB free, below
+device-verified; the connected phone currently reports 335 MB free, below
 Android's 1 GiB low-storage threshold for installing the APK.
 
 ---

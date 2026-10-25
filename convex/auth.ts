@@ -8,7 +8,8 @@ import Google from "@auth/core/providers/google";
  * Providers: Google OAuth and passwordless email links.
  *
  * Environment variables (set in Convex dashboard → Settings → Authentication):
- *   AUTH_SECRET           — random string that signs auth tokens (REQUIRED)
+ *   AUTH_SECRET           — secret used by Convex Auth (REQUIRED)
+ *   JWT_PRIVATE_KEY       — PKCS#8 RSA private key used to sign session tokens (REQUIRED)
  *   AUTH_GOOGLE_ID        — Google OAuth client ID
  *   AUTH_GOOGLE_SECRET    — Google OAuth client secret
  *   RESEND_API_KEY        — Resend API key (required in production)

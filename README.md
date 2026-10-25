@@ -183,8 +183,9 @@ without it Rebirth shows a configuration screen rather than a blank page. The
 development command writes it to `.env.local` (gitignored).
 
 For authentication, set these variables in the Convex deployment environment:
-`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `RESEND_API_KEY`, and
-`EMAIL_FROM`. Register Google OAuth callback URLs using the Convex Auth site
+`AUTH_SECRET`, `JWT_PRIVATE_KEY` (PKCS#8 RSA private key),
+`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `RESEND_API_KEY`, and `EMAIL_FROM`.
+Register Google OAuth callback URLs using the Convex Auth site
 URL (`https://<deployment>.convex.site/api/auth/callback/google`). For local
 development only, magic links can be printed to the Convex development logs by
 setting `EMAIL_LINK_DEV_MODE=true`; production email sign-in requires Resend

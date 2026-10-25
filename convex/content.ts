@@ -7,7 +7,8 @@ export const listContentItems = query({
   handler: async (ctx, args) => {
     await requireAuth(ctx);
     if (args.status) {
-      return ctx.db.query("contentItems").withIndex("by_status", (q) => q.eq("status", args.status));
+      const status = args.status;
+      return ctx.db.query("contentItems").withIndex("by_status", (q) => q.eq("status", status));
     }
     return ctx.db.query("contentItems");
   },

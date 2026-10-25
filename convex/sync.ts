@@ -415,10 +415,12 @@ export const deleteMyDataBatch = internalMutation({
 
 export const deleteMyData = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (
+    ctx,
+  ): Promise<{ deletedRecords: number; deletedBefore: number }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Authentication required");
-    const { deletedBefore } = await ctx.runMutation(
+    const { deletedBefore }: { deletedBefore: number } = await ctx.runMutation(
       internal.sync.beginMyDataDeletion,
       { userId },
     );

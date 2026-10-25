@@ -10,6 +10,7 @@ import Google from "@auth/core/providers/google";
  * Environment variables (set in Convex dashboard → Settings → Authentication):
  *   AUTH_SECRET           — secret used by Convex Auth (REQUIRED)
  *   JWT_PRIVATE_KEY       — PKCS#8 RSA private key used to sign session tokens (REQUIRED)
+ *   JWKS                  — matching public JSON Web Key Set served to Convex clients (REQUIRED)
  *   AUTH_GOOGLE_ID        — Google OAuth client ID
  *   AUTH_GOOGLE_SECRET    — Google OAuth client secret
  *   RESEND_API_KEY        — Resend API key (required in production)

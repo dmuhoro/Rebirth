@@ -4,6 +4,24 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Production acceptance — 2026-10-25
+- Deployed the current `main` revision to Vercel production
+  (`dpl_9TX7zbnfKWkwrxnj3Nh4yVNTxgEk`) and verified the live health response,
+  CSP/security headers, and JSON/no-store API 404.
+- Rotated the production Convex JWT signing key and matching JWKS. The initial
+  JWKS encoding was corrected immediately; the final public JWKS is valid RSA
+  JSON. A fresh OAuth sign-in after rotation still needs interactive acceptance.
+- Configured production Web Push VAPID keys in Convex and the matching public
+  key in Vercel, then deployed `dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo`. The
+  authenticated test action reached the no-subscription guard; no notification
+  was delivered because this browser has notifications blocked.
+- Kept the PWA open across two production deployments. Reload picked up the
+  new hashed frontend bundle (`index-D8iQLO4X.js` to `index-DV_8C6gs.js`).
+  Standalone-PWA offline behavior after this deploy remains unverified.
+- The physical Android phone disconnected with 411 MB free, below the 1 GiB
+  low-storage threshold. Native installation and lock-screen acceptance remain
+  blocked. Email magic-link delivery still needs a real test inbox.
+
 ## [1.3.1] - 2026-10-25
 
 ### Fixed

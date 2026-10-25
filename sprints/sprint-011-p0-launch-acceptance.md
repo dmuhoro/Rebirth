@@ -12,15 +12,15 @@ on a physical Android device.
 | P0 acceptance | Result | Evidence / remaining work |
 |---|---|---|
 | Complete Google sign-in | Complete | Production Google OAuth returned to Rebirth on desktop and Android Chrome. Both account panels reported "Account connected" after reload. The UI does not display the account email, so no identity string was collected. |
-| Latest production deployment | Complete | Vercel production deployment `dpl_DxYrET5M2R3Gamv8HV9xQvA5NKJJ` (`v1.3.1`) reached `READY`; the production alias served the updated account dialog and `/api/health` returned `{"status":"ok","hasApiKey":false}`. |
+| Latest production deployment | Complete | Vercel production deployment `dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo` reached `READY`; the production alias served the updated bundle, and `/api/health` returned `{"status":"ok","hasApiKey":false}`. CSP/security headers and JSON/no-store API 404 were verified live. |
 | Two-client Convex backup, restore, and deletion | Complete | The primary client imported one synthetic entry; Android restored and displayed it. Deleting only that entry on Android and importing local data applied one cloud deletion while preserving one lesson-progress record. A primary-client restore then reported 0 journal entries and 1 progress record; the test entry is absent from both local archives and cloud. |
-| Android install, offline, and lock-screen playback | Partial | Earlier PWA evidence confirmed standalone installation and cached offline guest content. Android Chrome loaded the production app, signed in, restored/deleted the test entry, and retained the account after reload. Native Android app compilation succeeded; native installation and lock-screen playback are blocked by 331 MB free against Android's 1 GiB low-storage threshold. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
+| Android install, offline, and lock-screen playback | Partial | Earlier PWA evidence confirmed standalone installation and cached offline guest content. Android Chrome loaded the production app, signed in, restored/deleted the test entry, and retained the account after reload. Native Android app compilation succeeded; native installation and lock-screen playback are blocked by the last observed 411 MB free against Android's 1 GiB low-storage threshold. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
 
 ## Device and deployment evidence
 
-- Physical device is a Xiaomi 25078RA3EA running Android 16. The latest
-  `adb shell df -h /data` measurement reports 331 MB available; Android reports
-  `lowBytes=1048576000`. No device data was deleted.
+- Physical device is a Xiaomi 25078RA3EA running Android 16. The last
+  `adb shell df -h /data` measurement reported 411 MB available; Android reports
+  `lowBytes=1048576000`. The phone later disconnected. No device data was deleted.
 - Production Google sign-in completed in Android Chrome using the same account
   as the desktop. The account panel reported "Account connected" before and
   after a Chrome reload. No account email or credentials were recorded.
@@ -34,9 +34,14 @@ on a physical Android device.
 - The authenticated production account remained connected after a full reload.
   The account panel does not display an email address; credentials were not
   recorded.
-- Vercel deployed release `v1.3.1` to production (`dpl_DxYrET5M2R3Gamv8HV9xQvA5NKJJ`);
-  the responsive account dialog was visible and scrollable on the Android
-  viewport.
+- Vercel deployed the latest accepted production revision
+  (`dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo`). The responsive account dialog was
+  visible and scrollable on the Android viewport in the earlier acceptance.
+- On 2026-10-25, live production checks confirmed CSP/security headers, the
+  health endpoint, and JSON/no-store behavior for unknown API routes.
+- The PWA was held open across two production deployments. Reload changed its
+  main bundle from `index-D8iQLO4X.js` to `index-DV_8C6gs.js`; this verifies
+  page reload update behavior, not standalone-PWA offline behavior.
 - The synthetic entry was visible in Android Journal after restore. Its local
   deletion produced `0` journal imports, `1` progress record, and `1` applied
   journal deletion in the Android manual-backup result. Desktop restore then
@@ -45,7 +50,7 @@ on a physical Android device.
   The build retains existing large-chunk and dependency-comment warnings.
 - Native Android `:app:assembleDebug` succeeded with JDK 21. The 4.4 MB APK
   reports `versionName 1.3.1` and `targetSdk 36`; it has not been installed
-  because Android is below its low-storage threshold.
+  because Android is below its low-storage threshold and later disconnected.
 
 ## Remaining P0 work
 
@@ -68,7 +73,7 @@ approved and tested.
 ## Status
 
 Google sign-in, production deployment, and the two-client Convex backup,
-restore, and deletion cycle are verified. The PWA install/offline evidence from
-the earlier run remains valid; native Android lock-screen acceptance is the
-only remaining P0 blocker. The connected phone's storage reserve prevents
-installing the successfully built native APK; no device data was removed.
+restore, and deletion cycle are verified. Earlier PWA install/offline evidence
+remains valid, and page reload picked up the latest deployed bundle. Native
+Android lock-screen acceptance is still blocked by insufficient storage and
+the disconnected device; no device data was removed.

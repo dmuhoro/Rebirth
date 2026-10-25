@@ -120,18 +120,21 @@ These are owned, not silently closed:
 2. **Complete in Sprint 011:** Two-client authenticated backup/restore/delete
    with a synthetic entry.
 3. Native APK **install**, notification permission, offline English voice, and
-   lock-screen playback acceptance (Android portion). The build itself now
-   passes: `cap sync android` plus `./gradlew assembleDebug` with the full JDK
-   21 at `~/.local/opt/jdk21` produces a 4.4 MB debug APK (`versionName 1.3.0`,
-   `targetSdk 36`). Installation is blocked by the connected phone's 331 MB free
-   space against Android's 1 GiB low-storage threshold; lock-screen playback
-   needs a human to lock the device.
-4. Live production headers after deploy (`curl -I` against
-   `https://rebirth-devotional.vercel.app`) and an installed-PWA update test
-   across two consecutive deployments.
+   lock-screen playback acceptance (Android portion). The 4.4 MB APK reports
+   `versionName 1.3.1` and `targetSdk 36`. The last connected-phone check
+   reported 411 MB free against Android's 1 GiB low-storage threshold; the
+   phone later disconnected. Lock-screen playback needs a human to lock the
+   device.
+4. **Complete for the web page:** production deployment
+   `dpl_9TX7zbnfKWkwrxnj3Nh4yVNTxgEk` passed live CSP, health, and JSON/no-store
+   API 404 checks. A later deployment with the Web Push public key changed the
+   main bundle hash, and an already-open page picked it up after reload.
+   Standalone-PWA offline behavior after this release remains unverified.
+5. Email magic-link delivery needs an owner-provided test inbox. Push VAPID
+   configuration is deployed; live delivery still requires notification
+   permission and a device subscription.
 
 ## Release note
 
-Version bump and tag are intentionally deferred until the native Android
-portion is committed, so the repository is tagged once at a coherent revision.
-This sprint is recorded under `Unreleased` in `CHANGELOG.md`.
+The native implementation shipped as `v1.3.1`; remaining physical acceptance is
+tracked in Sprint 011 and Sprint 013 rather than represented as complete.

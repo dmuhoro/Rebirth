@@ -27,16 +27,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Service Worker registration (PWA offline + cache) -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((reg) => console.log("Rebirth SW registered:", reg.scope))
-            .catch((err) => console.warn("Rebirth SW registration failed:", err));
-        });
-      }
-    </script>
   </body>
 </html>

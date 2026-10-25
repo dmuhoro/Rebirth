@@ -16,11 +16,13 @@ import {
   apiRateLimiter,
   aiRateLimiter,
   requestLogger,
-  canAffordAiRequest,
-  recordSpendUsd,
-  getDailySpendUsd,
+  reserveAiSpend,
   spendCapRemainingUsd,
 } from "./src/utils/apiSecurity";
+import {
+  privateApiCacheHeaders,
+  securityHeaders,
+} from "./src/utils/securityHeaders";
 import {
   CRISIS_SUPPORT_RESPONSE,
   detectsImmediateCrisisRisk,
@@ -31,11 +33,13 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+app.disable("x-powered-by");
 app.set("trust proxy", process.env.VERCEL === "1" ? 1 : false);
+app.use(securityHeaders);
 app.use(requestLogger);
 
 // Rate limit all /api/* routes (IP-based). Stricter limit for AI endpoints.
-app.use("/api/*", apiRateLimiter);
+app.use("/api/*", privateApiCacheHeaders, apiRateLimiter);
 app.use("/api/counsel", aiRateLimiter);
 app.use("/api/spiritual-guidance", aiRateLimiter);
 app.use("/api/daily-contemplation", aiRateLimiter);
@@ -217,7 +221,9 @@ app.get("/api/daily-contemplation", async (req, res) => {
     const forceAI = req.query.fresh === "true";
     const ai = getGenAI();
 
-    if (forceAI && ai) {
+    // Reserve budget before the provider call. If the cap is exhausted we
+    // silently serve the curated contemplation instead of failing the page.
+    if (forceAI && ai && reserveAiSpend()) {
       try {
         const themeChoices = ["spiritual_strength", "repentance_transformation", "divinity_of_christ"];
         const chosenTheme = themeChoices[Math.floor(Math.random() * themeChoices.length)];
@@ -289,20 +295,10 @@ const handleCounselRequest: express.RequestHandler = async (req, res) => {
       return res.json(CRISIS_SUPPORT_RESPONSE);
     }
 
-    // Spend cap check — refuse AI calls once the daily Gemini budget is exhausted.
-    if (!canAffordAiRequest(0.01)) {
-      return res.status(503).json({
-        error: "ai_budget_exhausted",
-        code: "SPEND_CAP_REACHED",
-        message:
-          "The daily AI counseling budget has been reached. Your saved reflections and Scripture remain available offline. Please try again tomorrow.",
-        remainingUsd: spendCapRemainingUsd(),
-      });
-    }
-
     const ai = getGenAI();
 
-    // If Gemini client is not initialized or no key, return deep theological fallback
+    // If Gemini client is not initialized or no key, return deep theological fallback.
+    // No provider call happens here, so no budget is consumed.
     if (!ai) {
       const fallbackKey =
         theme === "repentance_transformation"
@@ -315,6 +311,18 @@ const handleCounselRequest: express.RequestHandler = async (req, res) => {
         ...fallback,
         isAIGenerated: false,
         note: "Biblically formulated theological counsel and prayer.",
+      });
+    }
+
+    // Reserve budget BEFORE the provider call. Once the daily budget is
+    // exhausted, fail closed with an explicit, user-readable refusal.
+    if (!reserveAiSpend()) {
+      return res.status(503).json({
+        error: "ai_budget_exhausted",
+        code: "SPEND_CAP_REACHED",
+        message:
+          "The daily AI counseling budget has been reached. Your saved reflections and Scripture remain available offline. Please try again tomorrow.",
+        remainingUsd: spendCapRemainingUsd(),
       });
     }
 
@@ -406,6 +414,12 @@ Please generate a thoughtful, compassionate pastoral response with targeted scri
 
 app.post("/api/counsel", handleCounselRequest);
 app.post("/api/spiritual-guidance", handleCounselRequest);
+
+// Unknown API routes must never fall through to the SPA shell. Returning HTML
+// with a 200 for a bad API path hides client bugs and confuses monitoring.
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "not_found", code: "API_NOT_FOUND" });
+});
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (res.headersSent) {

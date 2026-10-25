@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenAccount}
             aria-label="Open account and manual backup settings"
-            className="rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#B9A06C]"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#2e3748] bg-[#181d26] p-2 text-[#b8b3a4] hover:text-[#B9A06C]"
           >
             <UserRound className="h-4 w-4" />
           </button>
@@ -53,8 +53,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {activeTrack && (
             <button
+              type="button"
               onClick={onOpenPlayer}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              className={`flex min-h-11 items-center space-x-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 playbackState === "playing"
                   ? "bg-[#252013] border-[#B9A06C]/50 text-[#f3e8c9] animate-pulse"
                   : "bg-[#181d26] border-[#2e3748] text-[#c5c0b0]"

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -65,10 +65,53 @@ export function SyncAccountView({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const backupFileInput = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const cloudSnapshot = useQuery(
     api.sync.getCloudSnapshot,
     isAuthenticated ? {} : "skip",
   );
+
+  // Modal behavior: focus moves in on open, Escape closes, Tab stays inside,
+  // and focus returns to the trigger on close.
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, []);
 
   const importLocalData = async () => {
     setError(null);
@@ -367,9 +410,11 @@ export function SyncAccountView({
       }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-title"
+        aria-describedby="account-description"
         className="w-full max-w-md space-y-5 rounded-2xl border border-[#353023] bg-[#11141a] p-5 text-[#f7f4ec] shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4">
@@ -377,7 +422,7 @@ export function SyncAccountView({
             <h2 id="account-title" className="text-lg font-semibold">
               Account &amp; manual backup
             </h2>
-            <p className="mt-1 text-sm text-[#b8b3a4]">
+            <p id="account-description" className="mt-1 text-sm text-[#b8b3a4]">
               {isLoading
                 ? "Checking account status…"
                 : isAuthenticated
@@ -386,10 +431,11 @@ export function SyncAccountView({
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Close account panel"
-            className="rounded-lg px-2 py-1 text-[#b8b3a4] hover:bg-white/10"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 py-1 text-[#b8b3a4] hover:bg-white/10"
           >
             ×
           </button>

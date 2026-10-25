@@ -59,8 +59,8 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 
 ## ✨ Key Features
 
-- 🎧 **Comprehensive Audio Lessons & Narration:**
-  Browser speech synthesis narrates lessons and Scripture studies. Media Session metadata and playback controls are supported where the browser provides them. Browser speech may pause when the device locks; persistent background narration requires pre-rendered recordings and is not yet available.
+- 🎧 **Audio Lessons & Narration:**
+  Browser speech synthesis narrates lessons and Scripture studies in the web/PWA. The Capacitor Android app includes an on-device Android TTS foreground service with notification and lock-screen controls. The native path requires an installed offline English voice and is awaiting physical-device acceptance; browser speech may stop when the device locks.
 - ⚡ **Tactile Android Haptic Feedback:**
   Integrated haptic engine (`navigator.vibrate`) providing physical tactile responses during tab navigation, prayer generation, and bookmarking.
 - 📜 **Original-Language Scripture Studies:**
@@ -78,7 +78,7 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 - 🔔 **Opt-in Web Push:**
   Per-device subscription and a test notification flow. Delivery requires VAPID configuration; browser permission is requested only after the user opts in.
 - 📲 **Offline PWA:**
-  Installable application shell and cached public content. Private journal and AI responses are excluded from the service-worker cache.
+  Installable application shell and cached public content. App navigations are network-first, so a deployed update is picked up on the next load instead of pinning the installed app to a stale bundle. Private journal entries and AI responses are excluded from the service-worker cache, and API routes are never cached.
 
 ---
 
@@ -90,6 +90,22 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 - JSON/Markdown exports can contain sensitive reflections. Store and share exported files carefully. JSON device restore applies supported journal, bookmark, progress, and preference data; cloud-only records included in an account export are archival and are not recreated by device restore. Exports do not contain sign-in credentials or browser push subscription keys.
 - Data deletion removes devotional records from local storage and the signed-in user's Convex data, and unsubscribes this browser from push notifications. The authentication account remains; a minimal deletion timestamp is retained locally and in Convex to prevent an older backup from restoring deleted journal entries.
 - The crisis screen provides general emergency guidance and a link to [Find A Helpline](https://findahelpline.com/). It is not monitored, is not a substitute for emergency or professional support, and may not detect every crisis. If you or someone else may be in immediate danger, contact local emergency services.
+
+### Production boundaries
+
+- API responses are sent with `Cache-Control: no-store`; the production CSP,
+  HSTS, frame denial, and nosniff headers are defined in both `server.ts`
+  (via `src/utils/securityHeaders.ts`) and `vercel.json`. A test fails if the
+  two CSP copies drift.
+- Every Gemini call reserves budget before contacting the provider. Once the
+  daily cap is exhausted the API returns `503 SPEND_CAP_REACHED` and the UI
+  falls back to curated counsel; crisis support is static and never charged.
+- The budget counters and rate limiters are in memory, so on multi-instance
+  hosting the effective ceiling is per instance. Treat the cap as a
+  cost-bounding guardrail, not an accounting system.
+- If `VITE_CONVEX_URL` is missing or malformed, Rebirth renders an explicit
+  configuration screen instead of a blank page. Cloud backup then remains
+  unavailable until the app is rebuilt with a valid deployment URL.
 
 ---
 
@@ -112,7 +128,8 @@ rebirth/
 │   │   ├── lessonsData.ts          # Core lessons, patristic voices & breath prayers
 │   │   └── scripturesData.ts       # Exegetical scripture studies & linguistic insights
 │   ├── services/
-│   │   └── speechService.ts        # Browser SpeechSynthesis controller with chunking
+│   │   ├── speechService.ts        # Browser SpeechSynthesis controller with chunking
+│   │   └── backgroundNarration.ts  # Native Android narration plugin contract
 │   ├── utils/
 │   │   └── haptics.ts              # Tactile vibration utility for mobile devices
 │   ├── types.ts                    # Strict TypeScript interfaces & theological types
@@ -151,11 +168,19 @@ cp .env.example .env
 Inside `.env`:
 ```env
 GEMINI_API_KEY="your-gemini-api-key"
+
+# Optional AI budget guardrails (server-side). Invalid values fail closed.
+GEMINI_DAILY_SPEND_CAP_USD=5.00
+GEMINI_ESTIMATED_REQUEST_COST_USD=0.01
 ```
 Configure Convex development and populate its generated frontend URLs:
 ```bash
 npx convex dev
 ```
+
+`VITE_CONVEX_URL` is read at build time and is required for the app to start;
+without it Rebirth shows a configuration screen rather than a blank page. The
+development command writes it to `.env.local` (gitignored).
 
 For authentication, set these variables in the Convex deployment environment:
 `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `RESEND_API_KEY`, and
@@ -201,15 +226,37 @@ npm run build
 npm run start
 ```
 
+### Native Android build
+
+The Android wrapper requires Android Studio/SDK (API 36) and JDK 21:
+
+```bash
+npm ci
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+Install the generated debug APK from `android/app/build/outputs/apk/debug/`
+on an Android device. Grant notification permission and ensure an offline
+English text-to-speech voice is installed to use background narration. The
+foreground service, notification, lock-screen, and offline-voice behavior
+must be verified on a physical device before relying on it.
+
 ---
 
 ## 🧪 Testing Strategy
 
-`npm run lint`, `npm test`, and `npm run build` are the required local checks.
-The current automated suite contains 41 tests covering theological guardrails,
-curriculum, journeys, haptics, daily contemplation, streak calculation, and
-spaced repetition. PWA installation, offline startup, notifications, OAuth, and
-background audio still require browser/device and configured-provider checks.
+`npm run lint`, `npm test`, and `npm run build` are the required web checks.
+The automated suite currently contains 80 tests covering theological
+guardrails, curriculum, journeys, haptics, daily contemplation, backup
+integrity, streak calculation, spaced repetition, API security headers, the
+spend cap, the real `public/sw.js` cache policy (executed in a VM), CSP
+consistency between the server and Vercel, and accessibility contracts.
+PWA installation, offline startup after a deploy, notifications, OAuth, and
+native background audio still require browser/device and configured-provider
+acceptance checks.
 
 ---
 

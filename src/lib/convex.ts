@@ -15,23 +15,48 @@ import { api } from "../../convex/_generated/api";
  *
  * VITE_CONVEX_URL is injected at build time by `npx convex dev` (.env.local,
  * gitignored). Never commit the deployment URL with credentials.
+ *
+ * The client is optional: a missing or malformed URL must not crash the bundle
+ * at import time. The entrypoint renders an explicit configuration screen
+ * instead of a blank white page, and callers that require cloud access use
+ * `getConvexClient()` which fails with a clear message.
  */
-const convexUrl = (import.meta as any).env?.VITE_CONVEX_URL;
+function readConvexUrl(): string | undefined {
+  const url = (import.meta as { env?: Record<string, string | undefined> }).env
+    ?.VITE_CONVEX_URL;
+  if (!url || typeof url !== "string" || !url.includes("://")) {
+    return undefined;
+  }
+  return url;
+}
+
+const convexUrl = readConvexUrl();
 
 if (!convexUrl) {
   // eslint-disable-next-line no-console
   console.warn(
-    "[Rebirth] VITE_CONVEX_URL not set. Cloud backup unavailable. Guest/localStorage mode active.",
+    "[Rebirth] VITE_CONVEX_URL is not set or invalid. Cloud backup is unavailable; the app will run in local-only mode.",
   );
 }
 
-export const convex = new ConvexReactClient(convexUrl);
+export const convex: ConvexReactClient | null = convexUrl
+  ? new ConvexReactClient(convexUrl)
+  : null;
 
 export type ConvexApi = typeof api;
 export type ConvexFunctionNames = keyof typeof api;
 
 export function isConvexReady(): boolean {
-  return Boolean(convexUrl);
+  return convex !== null;
+}
+
+export function getConvexClient(): ConvexReactClient {
+  if (!convex) {
+    throw new Error(
+      "Cloud backup is not configured. Set VITE_CONVEX_URL and rebuild the app.",
+    );
+  }
+  return convex;
 }
 
 export { api };

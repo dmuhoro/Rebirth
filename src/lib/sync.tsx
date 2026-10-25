@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { useConvexAuth as useAuth } from "@convex-dev/auth/react";
-import { convex, api } from "./convex";
+import { getConvexClient, api } from "./convex";
 import { useQuery } from "convex/react";
 import type { JournalEntry } from "../types";
 
@@ -110,15 +110,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       };
 
       for (let index = 0; index < batchCount; index++) {
-        const batchResult = await convex.mutation(api.sync.importLocalData, {
-          journalEntries: (journals[index] ?? []).map((entry) => ({
-            ...entry,
-            isFavorite: entry.isFavorite ?? false,
-          })),
-          lessonProgress: progress[index] ?? [],
-          bookmarkedScriptureIds: bookmarks[index] ?? [],
-          deletedJournalIds: deletedJournals[index] ?? [],
-        });
+        const batchResult = await getConvexClient().mutation(
+          api.sync.importLocalData,
+          {
+            journalEntries: (journals[index] ?? []).map((entry) => ({
+              ...entry,
+              isFavorite: entry.isFavorite ?? false,
+            })),
+            lessonProgress: progress[index] ?? [],
+            bookmarkedScriptureIds: bookmarks[index] ?? [],
+            deletedJournalIds: deletedJournals[index] ?? [],
+          },
+        );
         result.importedJournals += batchResult.importedJournals;
         result.importedProgress += batchResult.importedProgress;
         result.importedBookmarks += batchResult.importedBookmarks;

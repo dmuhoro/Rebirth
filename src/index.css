@@ -19,6 +19,31 @@
   }
 }
 
+/* Keyboard-first navigation: visible only when focused. */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  border-radius: 0.75rem;
+  background: #d4af37;
+  color: #0c0e12;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  transition: transform 150ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* A consistent, high-contrast focus ring for every interactive element. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid #e5c158;
+  outline-offset: 2px;
+}
+
 .font-serif-reading {
   font-family: "Newsreader", Georgia, serif;
   letter-spacing: 0.01em;

@@ -112,12 +112,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
           and restore from the account panel.
         </p>
         <button
+          type="button"
           onClick={handleSignOut}
           className="px-6 py-2 rounded-xl bg-[#d4af37] text-[#0c0e12] font-semibold hover:bg-[#e5c158] active:scale-95 transition-all"
         >
           Sign Out
         </button>
         <button
+          type="button"
           onClick={onContinueAsGuest}
           className="px-6 py-2 rounded-xl bg-transparent text-[#b8b3a4] border border-[#252c3c] hover:text-white hover:border-[#c5c0b0] active:scale-95 transition-all mt-2"
         >
@@ -141,8 +143,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-start gap-2">
-            <span className="mt-0.5">⚠️</span>
+          <div
+            role="alert"
+            className="p-3 rounded-xl bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-start gap-2"
+          >
+            <span aria-hidden="true" className="mt-0.5">
+              ⚠️
+            </span>
             <span>{error}</span>
           </div>
         )}
@@ -200,6 +207,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             Prefer to keep your reflections private on this device only?
           </p>
           <button
+            type="button"
             onClick={onContinueAsGuest}
             disabled={isSubmitting}
             className="w-full py-3 rounded-xl border border-[#d4af37]/30 bg-transparent text-[#e5c158] font-medium hover:bg-[#d4af37]/10 active:scale-95 transition-all"

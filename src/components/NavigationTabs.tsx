@@ -58,15 +58,15 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
             <button
               key={tab.id}
               id={`nav-tab-${tab.id}`}
+              type="button"
               onClick={() => handleTabClick(tab.id)}
               className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
                 isActive
                   ? "bg-[#181d26] text-[#e5c158] font-semibold shadow-inner"
                   : "text-[#8e897a] hover:text-[#c5c0b0] active:scale-95"
               }`}
-              style={{ minHeight: "48px" }}
-              aria-label={tab.label}
-              aria-selected={isActive}
+              style={{ minHeight: "48px", minWidth: "44px" }}
+              aria-current={isActive ? "page" : undefined}
             >
               <Icon
                 className={`w-5 h-5 mb-0.5 transition-transform ${

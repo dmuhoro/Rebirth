@@ -12,11 +12,32 @@
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 
+function parsePositiveAmount(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 /**
  * Gemini daily spend cap (USD). Once exceeded, AI requests are refused with
  * a clear message instead of silently allowing unbounded spend.
+ *
+ * An invalid or negative value fails closed to a zero cap (all AI refused)
+ * rather than silently removing the guardrail.
  */
-export const GEMINI_DAILY_SPEND_CAP_USD = Number(process.env.GEMINI_DAILY_SPEND_CAP_USD || "5.00");
+export const GEMINI_DAILY_SPEND_CAP_USD = parsePositiveAmount(
+  process.env.GEMINI_DAILY_SPEND_CAP_USD,
+  process.env.GEMINI_DAILY_SPEND_CAP_USD === undefined ? 5.0 : 0,
+);
+
+/**
+ * Conservative per-request estimate used to reserve budget before calling the
+ * provider. Actual cost depends on token usage and the model price sheet, so
+ * this is deliberately rounded up. Operators can override it.
+ */
+export const GEMINI_ESTIMATED_REQUEST_COST_USD = parsePositiveAmount(
+  process.env.GEMINI_ESTIMATED_REQUEST_COST_USD,
+  0.01,
+);
 
 /**
  * In-memory spend tracker (resets daily). In production this should be backed
@@ -50,8 +71,25 @@ export function spendCapRemainingUsd(): number {
 }
 
 export function canAffordAiRequest(estimatedUsd: number): boolean {
+  if (!Number.isFinite(estimatedUsd) || estimatedUsd <= 0) return false;
   resetSpendIfNewDay();
   return dailySpendUsd + estimatedUsd <= GEMINI_DAILY_SPEND_CAP_USD;
+}
+
+/**
+ * Atomically checks the remaining budget and reserves it before a provider
+ * call. Callers must use this instead of checking and then forgetting to
+ * record: a cap that never records spend is not a cap.
+ *
+ * Returns false when the estimate is invalid, the cap is exhausted, or the
+ * request would exceed it. Never throws.
+ */
+export function reserveAiSpend(
+  estimatedUsd: number = GEMINI_ESTIMATED_REQUEST_COST_USD,
+): boolean {
+  if (!canAffordAiRequest(estimatedUsd)) return false;
+  recordSpendUsd(estimatedUsd);
+  return true;
 }
 
 /**

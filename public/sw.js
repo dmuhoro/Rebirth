@@ -1,21 +1,28 @@
-// Rebirth Service Worker (Phase 1 — PWA offline-first)
+// Rebirth Service Worker
 //
 // Cache policy (per ADR-002):
-//   - Static shell (HTML/CSS/JS): cache-first, versioned cache `rebirth-static-v1`.
-//   - API routes (/api/*): network-first with offline fallback; NEVER cached.
-//   - Private data (journal/AI responses): excluded from all caches — localStorage/Convex only.
+//   - Navigations / app shell: network-first with cached fallback. This is
+//     what prevents users being pinned to a stale index.html after a deploy
+//     (a cached shell references hashed bundles that no longer exist).
+//   - Hashed static assets: cache-first (safe: filenames change per build).
+//   - API routes (/api/*): network-only, NEVER cached. Private reflections and
+//     AI responses must not enter a shared cache.
+//   - Cross-origin requests are not intercepted.
 //
-// Private and AI API responses are explicitly excluded so sensitive spiritual
-// journal text never enters a shared cache.
+// Bump CACHE_VERSION whenever the precache list changes.
 
-const CACHE_STATIC = "rebirth-static-v2";
-const CACHE_OFFLINE = "rebirth-offline-v2";
+const CACHE_VERSION = "v3";
+const CACHE_STATIC = `rebirth-static-${CACHE_VERSION}`;
+const CACHE_OFFLINE = `rebirth-offline-${CACHE_VERSION}`;
 
 // Public static assets to precache for offline meditation.
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
+  "/favicon.ico",
+  "/icon.svg",
+  "/apple-touch-icon.png",
   "/icons/icon-72x72.png",
   "/icons/icon-96x96.png",
   "/icons/icon-128x128.png",
@@ -24,10 +31,13 @@ const STATIC_ASSETS = [
   "/icons/icon-192x192.png",
   "/icons/icon-384x384.png",
   "/icons/icon-512x512.png",
+  "/icons/maskable-icon-192x192.png",
   "/icons/maskable-icon-512x512.png",
+  "/brand/rebirth-mark.svg",
+  "/brand/rebirth-logo-horizontal.svg",
+  "/brand/rebirth-logo-horizontal-reversed.svg",
 ];
 
-// Offline fallback page served when network API calls fail offline.
 const OFFLINE_FALLBACK = `
 <!DOCTYPE html>
 <html lang="en">
@@ -50,42 +60,59 @@ const OFFLINE_FALLBACK = `
 </html>
 `;
 
-// Install: precache static shell.
+// Install: precache the public shell. skipWaiting would activate immediately;
+// navigation is network-first now, so new shells are picked up on the next load
+// without risking a stale bundle.
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_STATIC).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_STATIC)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting()),
   );
 });
 
-// Activate: clean up old caches.
+// Activate: remove caches from older versions.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_STATIC && key !== CACHE_OFFLINE).map((key) => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_STATIC && key !== CACHE_OFFLINE)
+            .map((key) => caches.delete(key)),
+        ),
       )
-    ).then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Fetch: route by request type.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (request.method !== "GET") return;
+
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
 
-  // Never cache private or API routes — fail to network, offline fallback for API.
+  // Never cache private or API routes.
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirstApi(request));
+    event.respondWith(networkOnlyApi(request));
     return;
   }
 
-  // Navigation requests: cache-first, offline fallback page.
   if (request.mode === "navigate") {
-    event.respondWith(cacheFirstNavigation(request));
+    event.respondWith(networkFirstNavigation(request));
     return;
   }
 
-  // Static assets: cache-first.
   event.respondWith(cacheFirstStatic(request));
 });
 
@@ -94,9 +121,17 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { body: event.data?.text() };
+    payload = { body: event.data ? event.data.text() : "" };
   }
-  const { title = "Rebirth", body = "Your devotional reminder is ready.", url = "/" } = payload;
+  const title =
+    typeof payload.title === "string" && payload.title.trim()
+      ? payload.title.slice(0, 120)
+      : "Rebirth";
+  const body =
+    typeof payload.body === "string" && payload.body.trim()
+      ? payload.body.slice(0, 300)
+      : "Your devotional reminder is ready.";
+  const url = typeof payload.url === "string" ? payload.url : "/";
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
@@ -109,55 +144,73 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const requestedUrl = new URL(event.notification.data?.url ?? "/", self.location.origin);
+  const requestedUrl = new URL(
+    event.notification.data?.url ?? "/",
+    self.location.origin,
+  );
   if (requestedUrl.origin !== self.location.origin) return;
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-      const existing = windows.find((client) => "focus" in client);
-      if (existing) {
-        return existing.navigate(requestedUrl.href).then(() => existing.focus());
-      }
-      return self.clients.openWindow(requestedUrl.href);
-    }),
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => {
+        const existing = windows.find((client) => "focus" in client);
+        if (existing) {
+          return existing.navigate(requestedUrl.href).then(() => existing.focus());
+        }
+        return self.clients.openWindow(requestedUrl.href);
+      }),
   );
 });
 
 async function cacheFirstStatic(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
+
   try {
     const fresh = await fetch(request);
-    const cache = await caches.open(CACHE_STATIC);
-    cache.put(request, fresh.clone());
+    if (fresh.ok) {
+      const cache = await caches.open(CACHE_STATIC);
+      await cache.put(request, fresh.clone());
+    }
     return fresh;
   } catch (err) {
-    return caches.match("/index.html");
+    // Never return the HTML shell for a failed script/style/image request:
+    // that produces confusing MIME errors instead of a clean network failure.
+    return new Response("", { status: 504, statusText: "Gateway Timeout" });
   }
 }
 
-async function cacheFirstNavigation(request) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
+async function networkFirstNavigation(request) {
   try {
     const fresh = await fetch(request);
-    const cache = await caches.open(CACHE_STATIC);
-    cache.put(request, fresh.clone());
+    if (fresh.ok) {
+      const cache = await caches.open(CACHE_STATIC);
+      await cache.put(request, fresh.clone());
+      await cache.put("/index.html", fresh.clone());
+    }
     return fresh;
   } catch (err) {
-    return new Response(OFFLINE_FALLBACK, { headers: { "Content-Type": "text/html" } });
+    const cached =
+      (await caches.match(request)) || (await caches.match("/index.html"));
+    if (cached) return cached;
+    return new Response(OFFLINE_FALLBACK, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
   }
 }
 
-async function networkFirstApi(request) {
+async function networkOnlyApi(request) {
   try {
-    const fresh = await fetch(request);
-    return fresh;
+    return await fetch(request);
   } catch (err) {
-    // API offline: return a JSON fallback so the client can degrade gracefully.
     return new Response(
-      JSON.stringify({ error: "offline", message: "AI and sync features require a connection. Saved reflections remain available locally." }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: "offline",
+        message:
+          "AI and backup features require a connection. Saved reflections remain available locally.",
+      }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
     );
   }
 }

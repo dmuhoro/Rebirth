@@ -4,11 +4,31 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Added — Native Android narration path
+- Capacitor Android bridge routes narration, progress, and playback controls to an Android foreground TextToSpeech service while web/PWA playback retains browser speech synthesis.
+- Android playback requires notification permission and an installed offline English voice; physical-device lock-screen acceptance remains pending.
+
+### Security — Sprint 012 web production hardening
+- The Gemini daily spend cap now reserves budget before every provider call, fails closed on invalid configuration, skips charging for crisis and missing-key responses, and returns `503 SPEND_CAP_REACHED` when exhausted. `GEMINI_DAILY_SPEND_CAP_USD` and `GEMINI_ESTIMATED_REQUEST_COST_USD` are configurable.
+- Added production CSP, HSTS, frame denial, nosniff, referrer, permissions, and COOP headers in both the Express server and `vercel.json`; the inline service-worker script was removed so `script-src 'self'` can be enforced. A test fails if the two CSP copies drift.
+- All API responses are `Cache-Control: no-store`; unknown `/api/*` routes return JSON 404 instead of the SPA shell.
+
+### Fixed — Sprint 012 web production hardening
+- Service-worker navigations are network-first, so installed users receive the newly deployed shell instead of a stale `index.html` referencing deleted bundles. Hashed assets remain cache-first; API routes are never cached; non-GET and cross-origin requests are not intercepted.
+- A missing or malformed `VITE_CONVEX_URL` now renders an explicit configuration screen instead of crashing to a white page, and render failures are caught by an error boundary.
+- Accessibility: skip link, global `:focus-visible` ring, valid `aria-current` tab state (replacing `aria-selected` on plain buttons), 44px touch targets, and account-panel dialog semantics with Escape, focus trap, and focus restore.
+
+### Verification — Sprint 012 web production hardening
+- `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
+- New tests exercise the real `public/sw.js` inside a VM, assert the spend cap refuses a second call after budget exhaustion, assert crisis support does not charge, and check CSP consistency, accessibility contracts, and boot-failure screens.
+- Residual, recorded in `docs/READINESS-AUDIT.md`: rate/spend counters are per serverless instance, and OAuth, two-client backup, and native lock-screen acceptance remain external checks.
+
 ### Verification — Sprint 011 P0 launch acceptance
 - Redeployed `main` commit `7093a9c` to Vercel production (`dpl_2sXBBFUfGMNqgKDKctVUiumz9UTs`, READY) and confirmed the live health endpoint.
 - Installed the production PWA on a connected Android phone; service worker controlled the installed app, and a simulated offline reload opened cached devotional content in guest mode.
-- Android standalone PWA and service-worker control were confirmed. Foreground narration started, but browser speech stopped after the PWA was backgrounded and no Rebirth Android media session appeared; secure lock-screen behavior and audible output still need human confirmation.
-- The Google OAuth page is reachable, but sign-in was not completed during this check. Two-client Convex backup/restore was not run because neither client was authenticated; no account data was created or changed.
+- Android standalone PWA and service-worker control were confirmed. The developer confirms foreground audio is audible. In a screen-off/background check (without a verified secure lock), speech was active before backgrounding but reported stopped after 35 seconds; no Rebirth Android media session appeared.
+- Google OAuth reached Google's account page, which rejected the embedded sign-in browser because JavaScript was unsupported or disabled. Authentication must be retried in a supported external browser. Two-client Convex backup/restore was not run because neither client was authenticated; no account data was created or changed.
+- Native Android implementation has since been integrated with the playback context. Web TypeScript check, 64 tests, and web production build pass. APK compilation is blocked by the available Java 21 runtime lacking `jlink`/`jmod`; JDK 17 tooling cannot process Android API 36's Java 21 module descriptor. ADB currently sees an Android 16 phone, but the native APK has not yet been installed or tested.
 
 ## [1.2.0] - 2026-10-24
 

@@ -35,6 +35,10 @@ function DevotionalApp({ onOpenSignIn }: { onOpenSignIn: () => void }) {
 
   return (
     <div className="min-h-screen bg-[#0c0e12] text-[#f7f4ec] flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f7edd4]">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       {/* Top Header */}
       <Header
         onOpenPlayer={() => setIsPlayerExpanded(true)}
@@ -42,7 +46,11 @@ function DevotionalApp({ onOpenSignIn }: { onOpenSignIn: () => void }) {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-md mx-auto relative pt-2 safe-area-pad-bottom">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 w-full max-w-md mx-auto relative pt-2 safe-area-pad-bottom"
+      >
         {activeTab === "lessons" && (
           <LessonsView
             onOpenPlayer={() => setIsPlayerExpanded(true)}

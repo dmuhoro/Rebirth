@@ -415,7 +415,7 @@ export function SyncAccountView({
         aria-modal="true"
         aria-labelledby="account-title"
         aria-describedby="account-description"
-        className="w-full max-w-md space-y-5 rounded-2xl border border-[#353023] bg-[#11141a] p-5 text-[#f7f4ec] shadow-2xl"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-5 overflow-y-auto rounded-2xl border border-[#353023] bg-[#11141a] p-5 text-[#f7f4ec] shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

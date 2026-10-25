@@ -32,6 +32,9 @@ Date: 2026-10-25
   synthetic backup/restore/deletion flow, including propagated deletion.
 - `npm test` passes (15 files, 80 tests); `npm run lint` passes; Vercel's
   production build completed successfully.
+- Convex production now logs a bounded, email-redacted Resend rejection reason;
+  the diagnostic code was typechecked and deployed without logging the
+  recipient address or sign-in URL.
 
 ## Still open / external acceptance
 

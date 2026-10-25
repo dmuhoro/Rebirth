@@ -5,6 +5,8 @@ All notable changes to Rebirth are documented in this file.
 ## [Unreleased]
 
 ### Production acceptance — 2026-10-25
+- Convex magic-link failures now log the Resend status and sanitized provider
+  reason without logging the recipient or sign-in URL.
 - Deployed the current `main` revision to Vercel production
   (`dpl_9TX7zbnfKWkwrxnj3Nh4yVNTxgEk`) and verified the live health response,
   CSP/security headers, and JSON/no-store API 404.

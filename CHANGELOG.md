@@ -11,20 +11,23 @@ All notable changes to Rebirth are documented in this file.
   short screens, keeping its heading and controls reachable.
 
 ### Verification
-- Production Google sign-in returned to Rebirth, and the account panel reported
-  a connected account after a full page reload.
-- The primary client created one synthetic journal entry and explicitly
-  imported it to Convex: 1 journal entry imported, 0 progress records, 0
-  bookmarks, and 0 cloud deletions applied. The reflection contained no
-  personal data; production counsel returned its deterministic fallback because
-  Gemini is not configured.
+- Vercel production deployment `dpl_DxYrET5M2R3Gamv8HV9xQvA5NKJJ` reached
+  `READY` and the live `/api/health` returned `{"status":"ok","hasApiKey":false}`.
+- Google OAuth returned to Rebirth on desktop and Android Chrome. Both account
+  panels reported "Account connected" after reload.
+- A synthetic no-personal-data journal entry was imported to Convex from the
+  primary client, restored on Android, deleted there, and its deletion marker
+  imported. The primary client then restored 0 journal entries and 1 progress
+  record; the test entry is absent from both clients and cloud. Existing lesson
+  progress was preserved.
+- Production counsel returned the deterministic theological fallback because
+  Gemini is not configured; no live model response was tested.
 - `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
 - Native `:app:assembleDebug` succeeds with the full JDK 21 at
-  `~/.local/opt/jdk21`; the APK is 4.4 MB with `versionName 1.3.0` and
+  `~/.local/opt/jdk21`; the 4.4 MB APK has `versionName 1.3.1` and
   `targetSdk 36`. The connected Android phone has 247 MB free against
-  Android's 1 GiB low-storage threshold, so installation and lock-screen
-  acceptance remain blocked; second-client restore and test-entry deletion are
-  pending.
+  Android's 1 GiB low-storage threshold, so native installation and
+  lock-screen acceptance remain blocked.
 
 ## [1.3.0] - 2026-10-25
 

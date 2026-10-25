@@ -17,16 +17,17 @@
 - **Convex production deployment:** [accomplished-kiwi-69](https://dashboard.convex.dev/t/dmuhoro/rebirth/accomplished-kiwi-69)
 
 The production PWA and API health endpoint are deployed. Google OAuth has been
-verified end to end in a supported browser: sign-in returns to Rebirth, and the
-account panel still reports a connected account after reload. A synthetic
-journal entry was manually imported to Convex from the primary client; restore
-on a second signed-in client and deletion propagation remain to be verified.
-Gemini is not configured in production (`hasApiKey: false`), so counsel uses
-the deterministic theological fallback rather than a live model. Email
-magic-link and Web Push delivery still need live acceptance testing. Native
-Android narration builds, but lock-screen playback is not yet device-verified;
-the connected test phone currently has 247 MB free, below Android's 1 GiB
-low-storage threshold for installing the APK.
+verified in desktop and Android Chrome; the account panel reports a connected
+account after reload on both clients. A synthetic journal entry was manually
+backed up to Convex, restored on Android, deleted there, and the deletion was
+backed up and restored on desktop. The test entry is absent from both clients
+and cloud; existing lesson progress was preserved. Gemini is not configured
+in production (`hasApiKey: false`), so counsel uses the deterministic
+theological fallback rather than a live model. Email magic-link and Web Push
+delivery still need live acceptance testing. Native Android narration builds,
+but lock-screen playback is not yet device-verified; the connected test phone
+currently has 247 MB free, below Android's 1 GiB low-storage threshold for
+installing the APK.
 
 ---
 

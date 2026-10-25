@@ -11,18 +11,18 @@ on a physical Android device.
 
 | P0 acceptance | Result | Evidence / remaining work |
 |---|---|---|
-| Complete Google sign-in | Complete | Production Google OAuth returned to Rebirth. After a full page reload, the account panel reported "Account connected." The UI does not display the account email, so no identity string was collected. |
-| Latest production deployment | Pending | The current production app is healthy; deploy the latest committed frontend after the small-screen account-dialog fix is committed. |
-| Two-client Convex backup, restore, and deletion | Partial | A synthetic no-personal-data entry was created in the primary browser and manually imported. Convex reported 1 journal entry, 0 progress records, 0 bookmarks, and 0 cloud deletions applied. The Android browser is open at the sign-in page; same-account sign-in, cloud restore, and test-entry deletion propagation remain. |
-| Android install, offline, and lock-screen playback | Partial | Earlier PWA evidence confirmed standalone installation and cached offline guest content. The Android 16 phone is connected and opened the live app in Chrome, but remains at sign-in. Native Android app compilation succeeded; installation and native lock-screen playback are blocked by 247 MB free against Android's 1 GiB low-storage threshold. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
+| Complete Google sign-in | Complete | Production Google OAuth returned to Rebirth on desktop and Android Chrome. Both account panels reported "Account connected" after reload. The UI does not display the account email, so no identity string was collected. |
+| Latest production deployment | Complete | Vercel production deployment `dpl_DxYrET5M2R3Gamv8HV9xQvA5NKJJ` (`v1.3.1`) reached `READY`; the production alias served the updated account dialog and `/api/health` returned `{"status":"ok","hasApiKey":false}`. |
+| Two-client Convex backup, restore, and deletion | Complete | The primary client imported one synthetic entry; Android restored and displayed it. Deleting only that entry on Android and importing local data applied one cloud deletion while preserving one lesson-progress record. A primary-client restore then reported 0 journal entries and 1 progress record; the test entry is absent from both local archives and cloud. |
+| Android install, offline, and lock-screen playback | Partial | Earlier PWA evidence confirmed standalone installation and cached offline guest content. Android Chrome loaded the production app, signed in, restored/deleted the test entry, and retained the account after reload. Native Android app compilation succeeded; native installation and lock-screen playback are blocked by 247 MB free against Android's 1 GiB low-storage threshold. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
 
 ## Device and deployment evidence
 
 - Physical device is a Xiaomi 25078RA3EA running Android 16. Current free space
   is 247 MB; Android reports `lowBytes=1048576000`. No device data was deleted.
-- The live site opened in Android Chrome and displayed its sign-in page. The
-  device is a separate browser client; it has not yet been authenticated to the
-  same account.
+- Production Google sign-in completed in Android Chrome using the same account
+  as the desktop. The account panel reported "Account connected" before and
+  after a Chrome reload. No account email or credentials were recorded.
 - Production `/api/health` returned `{"status":"ok","hasApiKey":false}`.
   The synthetic reflection received the deterministic fallback, not a Gemini
   model response.
@@ -33,20 +33,22 @@ on a physical Android device.
 - The authenticated production account remained connected after a full reload.
   The account panel does not display an email address; credentials were not
   recorded.
+- Vercel deployed release `v1.3.1` to production (`dpl_DxYrET5M2R3Gamv8HV9xQvA5NKJJ`);
+  the responsive account dialog was visible and scrollable on the Android
+  viewport.
+- The synthetic entry was visible in Android Journal after restore. Its local
+  deletion produced `0` journal imports, `1` progress record, and `1` applied
+  journal deletion in the Android manual-backup result. Desktop restore then
+  showed `0` journals and preserved the single lesson-progress record.
 - `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
   The build retains existing large-chunk and dependency-comment warnings.
-- Native Android `:app:assembleDebug` succeeded with JDK 21. The APK has not
-  been installed because Android is below its low-storage threshold.
+- Native Android `:app:assembleDebug` succeeded with JDK 21. The 4.4 MB APK
+  reports `versionName 1.3.1` and `targetSdk 36`; it has not been installed
+  because Android is below its low-storage threshold.
 
 ## Remaining P0 work
 
-1. Deploy the latest committed frontend to Vercel and verify the health
-   endpoint and responsive account dialog.
-2. Sign the Android Chrome client into the same account, restore the synthetic
-   cloud record, verify its text, delete only that synthetic record, manually
-   back up the deletion marker, then restore on the primary client and confirm
-   the test entry is absent. Preserve every unrelated user record.
-3. Free at least 1 GiB on the phone (or use another device), install the native
+1. Free at least 1 GiB on the phone (or use another device), install the native
    APK, grant notification permission, and verify an offline English voice.
    Test audible narration with the screen securely locked and verify
    notification controls and progress updates.
@@ -64,9 +66,8 @@ approved and tested.
 
 ## Status
 
-Google sign-in and first-client manual Convex import are now verified. The
-second-client restore/deletion cycle, latest Vercel deployment, and native
-Android lock-screen acceptance remain open. The PWA screen-off test stopped
-reporting speech after 35 seconds. The connected phone's storage reserve
-prevents installing the successfully built native APK; no device data was
-removed.
+Google sign-in, production deployment, and the two-client Convex backup,
+restore, and deletion cycle are verified. The PWA install/offline evidence from
+the earlier run remains valid; native Android lock-screen acceptance is the
+only remaining P0 blocker. The connected phone's storage reserve prevents
+installing the successfully built native APK; no device data was removed.

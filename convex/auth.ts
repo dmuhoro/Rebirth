@@ -55,6 +55,34 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           }),
         });
         if (!response.ok) {
+          const responseBody = await response.text();
+          let providerName: string | undefined;
+          let providerMessage: string | undefined;
+          try {
+            const errorBody: unknown = JSON.parse(responseBody);
+            if (errorBody && typeof errorBody === "object") {
+              const details = errorBody as Record<string, unknown>;
+              providerName =
+                typeof details.name === "string" ? details.name : undefined;
+              providerMessage =
+                typeof details.message === "string"
+                  ? details.message
+                  : undefined;
+            }
+          } catch (error) {
+            if (!(error instanceof SyntaxError)) throw error;
+          }
+          const safeProviderMessage = providerMessage
+            ?.replace(
+              /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
+              "[redacted email]",
+            )
+            .slice(0, 240);
+          console.error("[Rebirth Auth] Resend rejected magic link.", {
+            status: response.status,
+            providerName,
+            providerMessage: safeProviderMessage,
+          });
           throw new Error(`Email provider rejected magic link (${response.status}).`);
         }
       },

@@ -115,13 +115,15 @@ a stale `index.html` whose hashed bundle no longer existed after a deploy.
 
 These are owned, not silently closed:
 
-1. Google sign-in from a supported external browser, then reload persistence.
-2. Two-client authenticated backup/restore/delete with a synthetic entry.
+1. **Complete in Sprint 011:** Google sign-in from a supported external
+   browser, then reload persistence.
+2. **Complete in Sprint 011:** Two-client authenticated backup/restore/delete
+   with a synthetic entry.
 3. Native APK **install**, notification permission, offline English voice, and
    lock-screen playback acceptance (Android portion). The build itself now
    passes: `cap sync android` plus `./gradlew assembleDebug` with the full JDK
    21 at `~/.local/opt/jdk21` produces a 4.4 MB debug APK (`versionName 1.3.0`,
-   `targetSdk 36`). Installation is blocked by the connected phone's 247 MB free
+   `targetSdk 36`). Installation is blocked by the connected phone's 62 MB free
    space against Android's 1 GiB low-storage threshold; lock-screen playback
    needs a human to lock the device.
 4. Live production headers after deploy (`curl -I` against

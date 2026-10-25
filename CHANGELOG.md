@@ -25,7 +25,7 @@ All notable changes to Rebirth are documented in this file.
 - `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
 - Native `:app:assembleDebug` succeeds with the full JDK 21 at
   `~/.local/opt/jdk21`; the 4.4 MB APK has `versionName 1.3.1` and
-  `targetSdk 36`. The connected Android phone has 247 MB free against
+  `targetSdk 36`. The connected Android phone has 62 MB free against
   Android's 1 GiB low-storage threshold, so native installation and
   lock-screen acceptance remain blocked.
 

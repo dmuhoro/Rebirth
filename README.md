@@ -26,7 +26,7 @@ in production (`hasApiKey: false`), so counsel uses the deterministic
 theological fallback rather than a live model. Email magic-link and Web Push
 delivery still need live acceptance testing. Native Android narration builds,
 but lock-screen playback is not yet device-verified; the connected test phone
-currently has 247 MB free, below Android's 1 GiB low-storage threshold for
+currently has 62 MB free, below Android's 1 GiB low-storage threshold for
 installing the APK.
 
 ---

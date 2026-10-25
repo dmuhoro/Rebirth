@@ -14,12 +14,12 @@ on a physical Android device.
 | Complete Google sign-in | Complete | Production Google OAuth returned to Rebirth on desktop and Android Chrome. Both account panels reported "Account connected" after reload. The UI does not display the account email, so no identity string was collected. |
 | Latest production deployment | Complete | Vercel production deployment `dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo` reached `READY`; the production alias served the updated bundle, and `/api/health` returned `{"status":"ok","hasApiKey":false}`. CSP/security headers and JSON/no-store API 404 were verified live. |
 | Two-client Convex backup, restore, and deletion | Complete | The primary client imported one synthetic entry; Android restored and displayed it. Deleting only that entry on Android and importing local data applied one cloud deletion while preserving one lesson-progress record. A primary-client restore then reported 0 journal entries and 1 progress record; the test entry is absent from both local archives and cloud. |
-| Android install, offline, and lock-screen playback | Partial | Android Chrome loaded the production app and showed the authenticated account. With Wi-Fi and mobile data disabled, cached guest lesson content still loaded. A production test push reached Android Chrome. Native APK installation and lock-screen playback remain blocked by 469 MB free against Android's 1 GiB low-storage threshold; no Rebirth WebAPK is currently installed. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
+| Android install, offline, and lock-screen playback | Partial | Android Chrome loaded the production app and showed the authenticated account. With Wi-Fi and mobile data disabled, cached guest lesson content still loaded. A production test push reached Android Chrome. Native APK installation and lock-screen playback remain blocked by 670 MB free against Android's 1 GiB low-storage threshold; no Rebirth WebAPK is currently installed. The earlier PWA screen-off check stopped reporting speech after 35 seconds. |
 
 ## Device and deployment evidence
 
 - Physical device is a Xiaomi 25078RA3EA running Android 16. The latest
-  `adb shell df -h /data` measurement reports 469 MB available; Android reports
+  `adb shell df -h /data` measurement reports 670 MB available; Android reports
   `lowBytes=1048576000`. No device data was deleted.
 - Production Google sign-in completed in Android Chrome using the same account
   as the desktop. The account panel reported "Account connected" before and

@@ -121,7 +121,7 @@ These are owned, not silently closed:
    with a synthetic entry.
 3. Native APK **install**, offline English voice, and lock-screen playback
    acceptance (Android portion). The 4.4 MB APK reports `versionName 1.3.1`
-   and `targetSdk 36`. The connected phone reports 469 MB free against
+   and `targetSdk 36`. The connected phone reports 670 MB free against
    Android's 1 GiB low-storage threshold. Lock-screen playback needs a human
    to lock the device.
 4. **Complete for the web page:** production deployment

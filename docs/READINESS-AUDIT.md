@@ -43,7 +43,7 @@ hold). Nothing here is marked verified on intent alone.
 |---|---|---|
 | Google sign-in completes and persists | Prior attempt used an embedded browser Google rejects; no interactive account session held | Supported external browser, Google OAuth client consent |
 | Two-client backup/restore/delete | Requires two authenticated clients and permission to create a synthetic entry | Signed-in browser/device pair; explicit approval |
-| Native APK lock-screen narration | No APK installed; JDK lacking `jlink`/`jmod` for API 36 | Complete JDK 21, connected device, notification permission, offline voice |
+| Native APK lock-screen narration | APK now builds (full JDK 21 at `~/.local/opt/jdk21`, `versionName 1.3.0`, `targetSdk 36`, 4.4 MB). Installation is blocked by the connected phone having 247 MB free against Android's 1 GiB low-storage threshold; lock-screen playback needs a human | Free device storage or use another device, grant notification permission, install an offline English voice, then lock-screen acceptance |
 | Live production header/update proof | Requires deploying this revision and `curl`ing the alias twice | Deploy approval and production access |
 | Gemini live quality | Production reports `hasApiKey:false`; model path only proven with mocks | Operator-provided key and budget approval |
 

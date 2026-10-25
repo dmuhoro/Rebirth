@@ -117,8 +117,13 @@ These are owned, not silently closed:
 
 1. Google sign-in from a supported external browser, then reload persistence.
 2. Two-client authenticated backup/restore/delete with a synthetic entry.
-3. Native APK build, install, notification permission, offline English voice,
-   and lock-screen playback acceptance (Android portion).
+3. Native APK **install**, notification permission, offline English voice, and
+   lock-screen playback acceptance (Android portion). The build itself now
+   passes: `cap sync android` plus `./gradlew assembleDebug` with the full JDK
+   21 at `~/.local/opt/jdk21` produces a 4.4 MB debug APK (`versionName 1.3.0`,
+   `targetSdk 36`). Installation is blocked by the connected phone's 247 MB free
+   space against Android's 1 GiB low-storage threshold; lock-screen playback
+   needs a human to lock the device.
 4. Live production headers after deploy (`curl -I` against
    `https://rebirth-devotional.vercel.app`) and an installed-PWA update test
    across two consecutive deployments.

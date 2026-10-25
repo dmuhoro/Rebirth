@@ -119,20 +119,21 @@ These are owned, not silently closed:
    browser, then reload persistence.
 2. **Complete in Sprint 011:** Two-client authenticated backup/restore/delete
    with a synthetic entry.
-3. Native APK **install**, notification permission, offline English voice, and
-   lock-screen playback acceptance (Android portion). The 4.4 MB APK reports
-   `versionName 1.3.1` and `targetSdk 36`. The last connected-phone check
-   reported 411 MB free against Android's 1 GiB low-storage threshold; the
-   phone later disconnected. Lock-screen playback needs a human to lock the
-   device.
+3. Native APK **install**, offline English voice, and lock-screen playback
+   acceptance (Android portion). The 4.4 MB APK reports `versionName 1.3.1`
+   and `targetSdk 36`. The connected phone reports 349 MB free against
+   Android's 1 GiB low-storage threshold. Lock-screen playback needs a human
+   to lock the device.
 4. **Complete for the web page:** production deployment
    `dpl_9TX7zbnfKWkwrxnj3Nh4yVNTxgEk` passed live CSP, health, and JSON/no-store
    API 404 checks. A later deployment with the Web Push public key changed the
    main bundle hash, and an already-open page picked it up after reload.
-   Standalone-PWA offline behavior after this release remains unverified.
-5. Email magic-link delivery needs an owner-provided test inbox. Push VAPID
-   configuration is deployed; live delivery still requires notification
-   permission and a device subscription.
+   Android Chrome offline guest content was then verified with Wi-Fi and mobile
+   data disabled. Standalone-WebAPK installation remains unverified.
+5. **Complete:** production Web Push VAPID configuration and test delivery to
+   Android Chrome. Magic-link acceptance remains blocked because Resend
+   rejects the configured `gmail.com` sender domain as unverified; configure a
+   sender on a verified domain and repeat the test.
 
 ## Release note
 

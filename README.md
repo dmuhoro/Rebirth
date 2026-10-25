@@ -23,11 +23,12 @@ backed up to Convex, restored on Android, deleted there, and the deletion was
 backed up and restored on desktop. The test entry is absent from both clients
 and cloud; existing lesson progress was preserved. Gemini is not configured
 in production (`hasApiKey: false`), so counsel uses the deterministic
-theological fallback rather than a live model. Email magic-link and Web Push
-delivery still need live acceptance testing. Native Android narration builds,
-but lock-screen playback is not yet device-verified; the last connected-device
-check reported 411 MB free, below Android's 1 GiB low-storage threshold for
-installing the APK. The phone disconnected before native acceptance could resume.
+theological fallback rather than a live model. Web Push was configured and a
+test notification reached Android Chrome. Magic-link delivery is blocked
+because Resend rejects the current `gmail.com` sender domain as unverified.
+Native Android narration builds, but lock-screen playback is not yet
+device-verified; the connected phone currently reports 349 MB free, below
+Android's 1 GiB low-storage threshold for installing the APK.
 
 ---
 
@@ -82,7 +83,9 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 - 🔐 **Account & Manual Backup:**
   Google OAuth and passwordless email sign-in, with guest mode and user-initiated backup and restore. Convex functions enforce ownership at the data boundary; there is no automatic cross-device sync.
 - 🔔 **Opt-in Web Push:**
-  Per-device subscription and a test notification flow. Delivery requires VAPID configuration; browser permission is requested only after the user opts in.
+  Per-device subscription and a test notification flow. Production VAPID is
+  configured and test delivery was verified on Android Chrome; browser
+  permission is requested only after the user opts in.
 - 📲 **Offline PWA:**
   Installable application shell and cached public content. App navigations are network-first, so a deployed update is picked up on the next load instead of pinning the installed app to a stale bundle. Private journal entries and AI responses are excluded from the service-worker cache, and API routes are never cached.
 

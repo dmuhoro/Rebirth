@@ -43,9 +43,9 @@ hold). Nothing here is marked verified on intent alone.
 |---|---|---|
 | Google sign-in completes and persists | Production sign-in and reload persistence were previously verified; JWT signing key was rotated on 2026-10-25 and the current account panel remained connected after reload | Complete a fresh Google sign-in after key rotation |
 | Two-client backup/restore/delete | Synthetic entry was restored on Android, deleted there, and deletion propagated to desktop | Complete in Sprint 011; evidence retained |
-| Native APK lock-screen narration | APK builds with `versionName 1.3.1`, `targetSdk 36`, and 4.4 MB. The last connected-phone check reported 411 MB free against Android's 1 GiB low-storage threshold; the phone later disconnected. | Reconnect after freeing at least 1.2 GB, grant notification permission, install an offline English voice, then verify lock-screen acceptance |
+| Native APK lock-screen narration | APK builds with `versionName 1.3.1`, `targetSdk 36`, and 4.4 MB. The connected phone reports 349 MB free against Android's 1 GiB low-storage threshold. | Free at least 1.2 GB, install an offline English voice, then verify native lock-screen acceptance |
 | Live production header/update proof | Latest production alias returned CSP/security headers, health 200, and JSON/no-store API 404; an open page reloaded the new main bundle after the next deployment | Complete for browser-page reload; standalone offline-PWA acceptance remains open |
-| Email magic-link / Web Push acceptance | Email provider and VAPID configuration are present; browser notifications are blocked and no test inbox/subscription was supplied | Enable notifications on an owned test device and use an owner-provided test inbox |
+| Email magic-link / Web Push acceptance | Android Chrome received a production test notification. Resend rejected the configured `gmail.com` sender with HTTP 403 because that domain is unverified. | Configure a sender on a verified domain and repeat the magic-link test; push delivery is complete |
 | Gemini live quality | Production reports `hasApiKey:false`; model path only proven with mocks | Operator-provided key and budget approval |
 
 ## Product-level gaps to state plainly

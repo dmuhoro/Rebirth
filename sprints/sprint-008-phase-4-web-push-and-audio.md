@@ -27,6 +27,7 @@
 Push implementation is complete. Live delivery, device verification, and
 pre-rendered audio assets remain pending the external setup above.
 
-Production app and Convex code are deployed. The production Convex environment
-currently has no auth, email, or VAPID variables configured, so live sign-in and
-push delivery are intentionally not reported as verified.
+At the Sprint 008 closeout, production auth, email, and VAPID variables were
+not configured. Later production acceptance is recorded in Sprint 013: Google
+sign-in and Android Chrome Web Push are verified; email sender verification and
+native Android lock-screen narration remain open.

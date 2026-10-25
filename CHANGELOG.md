@@ -13,14 +13,17 @@ All notable changes to Rebirth are documented in this file.
   JSON. A fresh OAuth sign-in after rotation still needs interactive acceptance.
 - Configured production Web Push VAPID keys in Convex and the matching public
   key in Vercel, then deployed `dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo`. The
-  authenticated test action reached the no-subscription guard; no notification
-  was delivered because this browser has notifications blocked.
+  authenticated test action delivered a notification to the connected Android
+  Chrome subscription after permission was granted.
 - Kept the PWA open across two production deployments. Reload picked up the
   new hashed frontend bundle (`index-D8iQLO4X.js` to `index-DV_8C6gs.js`).
   Standalone-PWA offline behavior after this deploy remains unverified.
-- The physical Android phone disconnected with 411 MB free, below the 1 GiB
-  low-storage threshold. Native installation and lock-screen acceptance remain
-  blocked. Email magic-link delivery still needs a real test inbox.
+- The physical Android phone reports 349 MB free, below the 1 GiB low-storage
+  threshold. Native APK installation and lock-screen narration acceptance
+  remain blocked.
+- A magic link was requested to the owner-provided test inbox. Resend rejected
+  the current `gmail.com` sender domain with HTTP 403 (`validation_error`,
+  domain not verified); no link was delivered.
 
 ## [1.3.1] - 2026-10-25
 
@@ -43,7 +46,7 @@ All notable changes to Rebirth are documented in this file.
 - `npm run lint`, `npm test` (15 files, 80 tests), and `npm run build` pass.
 - Native `:app:assembleDebug` succeeds with the full JDK 21 at
   `~/.local/opt/jdk21`; the 4.4 MB APK has `versionName 1.3.1` and
-  `targetSdk 36`. The connected Android phone has 331 MB free against
+  `targetSdk 36`. The connected Android phone had 331 MB free against
   Android's 1 GiB low-storage threshold, so native installation and
   lock-screen acceptance remain blocked.
 

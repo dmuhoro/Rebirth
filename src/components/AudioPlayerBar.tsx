@@ -31,6 +31,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     playbackState,
     playbackSpeed,
     progress,
+    audioError,
     togglePlayPause,
     stopAudio,
     setSpeed,
@@ -114,6 +115,14 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
 
   return (
     <>
+      {audioError && (
+        <p
+          role="alert"
+          className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md rounded-xl border border-amber-500/40 bg-[#181d26] px-4 py-3 text-sm text-amber-200 shadow-xl"
+        >
+          {audioError}
+        </p>
+      )}
       {/* Expanded Player Sheet */}
       {isExpanded && (
         <div

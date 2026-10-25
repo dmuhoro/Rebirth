@@ -4,8 +4,10 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
+import type { PluginListenerHandle } from "@capacitor/core";
 import {
   ActiveAudioTrack,
   JournalEntry,
@@ -13,6 +15,10 @@ import {
   TheologicalTheme,
 } from "../types";
 import { speechService, SpeechProgress } from "../services/speechService";
+import {
+  backgroundNarration,
+  isNativeAndroidNarrationAvailable,
+} from "../services/backgroundNarration";
 import {
   filterBackupJournalData,
   type BackupLocalData,
@@ -35,6 +41,7 @@ interface DevotionalContextType {
   playbackState: PlaybackState;
   playbackSpeed: number;
   progress: SpeechProgress | null;
+  audioError: string | null;
   playTrack: (track: ActiveAudioTrack) => void;
   togglePlayPause: () => void;
   stopAudio: () => void;
@@ -90,7 +97,10 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [playbackSpeed, setPlaybackSpeedState] = useState<number>(1.0);
   const [progress, setProgress] = useState<SpeechProgress | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const [localDataResetToken, setLocalDataResetToken] = useState(0);
+  const nativeSessionId = useRef(0);
+  const activeAudioTrackId = useRef<string | null>(null);
 
   // Persistence State
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
@@ -260,10 +270,93 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isNativeAndroidNarrationAvailable()) return;
+    let disposed = false;
+    let listenerHandles: PluginListenerHandle[] = [];
+
+    void Promise.all([
+      backgroundNarration.addListener("progress", (event) => {
+        if (event.sessionId !== nativeSessionId.current) return;
+        setProgress({
+          currentChunkIndex: event.currentChunkIndex,
+          totalChunks: event.totalChunks,
+          charIndex: event.charIndex,
+          percentage: event.percentage,
+          currentSentence: event.currentSentence,
+        });
+        const trackId = activeAudioTrackId.current;
+        if (trackId) {
+          setLessonProgress((previous) => ({
+            ...previous,
+            [trackId]: Math.max(previous[trackId] ?? 0, event.percentage),
+          }));
+        }
+      }),
+      backgroundNarration.addListener("state", (event) => {
+        if (event.sessionId !== nativeSessionId.current) return;
+        setPlaybackState(event.state);
+        if (event.error) setAudioError(event.error);
+        if (event.ended) {
+          setProgress((previous) =>
+            previous ? { ...previous, percentage: 100 } : null,
+          );
+          const trackId = activeAudioTrackId.current;
+          if (trackId) {
+            setLessonProgress((previous) => ({ ...previous, [trackId]: 100 }));
+            setCompletedLessonIds((previous) =>
+              previous.includes(trackId) ? previous : [...previous, trackId],
+            );
+          }
+        }
+      }),
+    ])
+      .then((handles) => {
+        if (disposed) {
+          handles.forEach((handle) => void handle.remove());
+        } else {
+          listenerHandles = handles;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to connect Android narration events:", error);
+        setAudioError("Android narration controls could not be initialized.");
+      });
+
+    return () => {
+      disposed = true;
+      listenerHandles.forEach((handle) => void handle.remove());
+    };
+  }, []);
+
   const playTrack = useCallback((track: ActiveAudioTrack) => {
     setActiveTrack(track);
+    activeAudioTrackId.current = track.id;
     setProgress(null);
+    setAudioError(null);
     setPlaybackState("playing");
+
+    if (isNativeAndroidNarrationAvailable()) {
+      nativeSessionId.current += 1;
+      void backgroundNarration
+        .play({
+          text: track.fullText,
+          title: track.title,
+          subtitle: track.subtitle,
+          rate: playbackSpeed,
+          sessionId: nativeSessionId.current,
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to start Android narration:", error);
+          setPlaybackState("idle");
+          setAudioError(
+            error instanceof Error
+              ? error.message
+              : "Android narration could not be started.",
+          );
+        });
+      return;
+    }
 
     speechService.speak(
       track.fullText,
@@ -298,15 +391,29 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
         });
       }
     );
-  }, []);
+  }, [playbackSpeed]);
 
   const togglePlayPause = useCallback(() => {
     if (!activeTrack) return;
     if (playbackState === "playing") {
-      speechService.pause();
+      if (isNativeAndroidNarrationAvailable()) {
+        void backgroundNarration.pause().catch((error: unknown) => {
+          console.error("Failed to pause Android narration:", error);
+          setAudioError("Android narration could not be paused.");
+        });
+      } else {
+        speechService.pause();
+      }
       setPlaybackState("paused");
     } else if (playbackState === "paused") {
-      speechService.resume();
+      if (isNativeAndroidNarrationAvailable()) {
+        void backgroundNarration.resume().catch((error: unknown) => {
+          console.error("Failed to resume Android narration:", error);
+          setAudioError("Android narration could not be resumed.");
+        });
+      } else {
+        speechService.resume();
+      }
       setPlaybackState("playing");
     } else {
       playTrack(activeTrack);
@@ -314,14 +421,28 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
   }, [activeTrack, playbackState, playTrack]);
 
   const stopAudio = useCallback(() => {
-    speechService.stop();
+    if (isNativeAndroidNarrationAvailable()) {
+      void backgroundNarration.stop().catch((error: unknown) => {
+        console.error("Failed to stop Android narration:", error);
+        setAudioError("Android narration could not be stopped.");
+      });
+    } else {
+      speechService.stop();
+    }
     setPlaybackState("idle");
     setProgress(null);
   }, []);
 
   const setSpeed = useCallback((newSpeed: number) => {
     setPlaybackSpeedState(newSpeed);
-    speechService.setRate(newSpeed);
+    if (isNativeAndroidNarrationAvailable()) {
+      void backgroundNarration.setRate({ rate: newSpeed }).catch((error: unknown) => {
+        console.error("Failed to change Android narration speed:", error);
+        setAudioError("Android narration speed could not be changed.");
+      });
+    } else {
+      speechService.setRate(newSpeed);
+    }
     try {
       localStorage.setItem(STORAGE_KEYS.SPEECH_RATE, newSpeed.toString());
     } catch (e) {
@@ -330,11 +451,25 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const skipForward = useCallback(() => {
-    speechService.skipForward();
+    if (isNativeAndroidNarrationAvailable()) {
+      void backgroundNarration.skipForward().catch((error: unknown) => {
+        console.error("Failed to skip Android narration:", error);
+        setAudioError("Android narration could not skip forward.");
+      });
+    } else {
+      speechService.skipForward();
+    }
   }, []);
 
   const skipBackward = useCallback(() => {
-    speechService.skipBackward();
+    if (isNativeAndroidNarrationAvailable()) {
+      void backgroundNarration.skipBackward().catch((error: unknown) => {
+        console.error("Failed to skip Android narration backward:", error);
+        setAudioError("Android narration could not skip backward.");
+      });
+    } else {
+      speechService.skipBackward();
+    }
   }, []);
 
   const addJournalEntry = useCallback(
@@ -534,7 +669,13 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(key);
     }
     localStorage.setItem(STORAGE_KEYS.DELETED_BEFORE, String(deletionTime));
-    speechService.stop();
+    if (isNativeAndroidNarrationAvailable()) {
+      void backgroundNarration.stop().catch((error: unknown) => {
+        console.error("Failed to stop Android narration during reset:", error);
+      });
+    } else {
+      speechService.stop();
+    }
     setActiveTrack(null);
     setPlaybackState("idle");
     setProgress(null);
@@ -556,6 +697,7 @@ export function DevotionalProvider({ children }: { children: ReactNode }) {
         playbackState,
         playbackSpeed,
         progress,
+        audioError,
         playTrack,
         togglePlayPause,
         stopAudio,

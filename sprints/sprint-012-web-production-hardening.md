@@ -123,7 +123,7 @@ These are owned, not silently closed:
    lock-screen playback acceptance (Android portion). The build itself now
    passes: `cap sync android` plus `./gradlew assembleDebug` with the full JDK
    21 at `~/.local/opt/jdk21` produces a 4.4 MB debug APK (`versionName 1.3.0`,
-   `targetSdk 36`). Installation is blocked by the connected phone's 62 MB free
+   `targetSdk 36`). Installation is blocked by the connected phone's 331 MB free
    space against Android's 1 GiB low-storage threshold; lock-screen playback
    needs a human to lock the device.
 4. Live production headers after deploy (`curl -I` against

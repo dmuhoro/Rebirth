@@ -4,6 +4,8 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-25
+
 ### Fixed
 - The account and manual-backup dialog now constrains its height and scrolls on
   short screens, keeping its heading and controls reachable.

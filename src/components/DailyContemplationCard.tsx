@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, PenTool, Volume2, RefreshCw, BookOpen, Heart, Check } from "lucide-react";
 import { DailyContemplation } from "../types";
 import { useDevotional } from "../context/DevotionalContext";
+import { resolveApiPath } from "../lib/apiTransport";
 import { triggerHaptic } from "../utils/haptics";
 
 interface DailyContemplationCardProps {
@@ -31,7 +32,9 @@ export const DailyContemplationCard: React.FC<DailyContemplationCardProps> = ({ 
   const fetchDailyContemplation = async (fresh: boolean) => {
     setIsLoading(true);
     try {
-      const url = fresh ? "/api/daily-contemplation?fresh=true" : "/api/daily-contemplation";
+      const url = resolveApiPath(
+        fresh ? "/api/daily-contemplation?fresh=true" : "/api/daily-contemplation",
+      );
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();

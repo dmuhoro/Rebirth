@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { TheologicalTheme, AIGeneratedGuidance } from "../types";
 import { useDevotional } from "../context/DevotionalContext";
+import { resolveApiPath } from "../lib/apiTransport";
 import { triggerHaptic } from "../utils/haptics";
 import { CrisisSupportResponse } from "../utils/crisisSupport";
 
@@ -164,7 +165,7 @@ export const NotepadView: React.FC<NotepadViewProps> = ({
     setCrisisSupport(null);
 
     try {
-      const response = await fetch("/api/counsel", {
+      const response = await fetch(resolveApiPath("/api/counsel"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

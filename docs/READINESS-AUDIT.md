@@ -36,6 +36,7 @@ hold). Nothing here is marked verified on intent alone.
 | Installed WebAPK speech stops on screen lock | Documented limitation; foreground speech starts in the WebAPK but stops when the screen sleeps. Native TTS uses a foreground service, media session, and audio-focus handling | Lock-screen narration remains unavailable in the WebAPK. Native audible output, locked-screen controls, and interruption behavior have not been accepted on the current build | Human: test the native build while securely locked; do not transfer native results to the WebAPK |
 | PWA update while open | Network-first shell picks up new HTML on next load | A tab already open keeps its in-memory bundle until reload | Acceptable; documented in Sprint 012 |
 | Backup is manual, not continuous | Explicit import/restore with confirmation | Users can believe data is synced when it is not | Product: align copy and consider automatic sync after ADR |
+| Native APK battery / auto-start whitelist | On HyperOS / MIUI the foreground service may be killed by the battery optimiser unless the user whitelists Rebirth (Settings → Apps → Rebirth → Battery → No restrictions + Auto‑start). Controls: README now documents the whitelist steps; user must complete them for reliable lock‑screen narration. | Service may be killed after reboot or Doze if not whitelisted; narration stops until app is reopened. | Engineer: document whitelist steps in README; Product: include onboarding hint for first‑time users. |
 
 ## External verification (not engineering-completable here)
 

@@ -271,6 +271,17 @@ an offline English text-to-speech voice. Audible output, tap-level pause/resume,
 and offline voice with radios disabled still require human confirmation. The
 native wrapper version is 1.3.2 (versionCode 132, versionName "1.3.2").
 
+## 🔋 Battery & Auto‑start whitelist (HyperOS / MIUI)
+
+On Xiaomi / HyperOS devices the foreground service may be killed by the battery optimiser unless you whitelist the app:
+
+1. Open **Settings → Apps → Rebirth → Battery**.
+2. Set **Battery usage** to **No restrictions**.
+3. Enable **Auto‑start** (or "Start automatically") so the service can launch after reboot.
+4. Optionally disable **Sleeping apps** or add Rebirth to the exceptions list.
+
+Without these settings the `BackgroundNarrationService` may be terminated when the device Doze mode activates, and narration will stop until the app is reopened.
+
 ---
 
 ## 🧪 Testing Strategy

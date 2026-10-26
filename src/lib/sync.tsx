@@ -27,7 +27,6 @@ export interface MigrationResult {
 }
 
 interface SyncContextType {
-  isSynced: boolean;
   userId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;

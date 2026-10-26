@@ -59,7 +59,9 @@ export interface BackupLocalData {
   speechRate: number;
 }
 
-export type RebirthBackup = z.infer<typeof backupSchema>;
+export type RebirthBackup = Omit<z.infer<typeof backupSchema>, "localData"> & {
+  localData: BackupLocalData;
+};
 
 export function filterBackupJournalData(
   journalEntries: JournalEntry[],
@@ -90,17 +92,25 @@ export function createBackup(
   cloudData: Record<string, unknown> | null,
   exportedAt = new Date().toISOString(),
 ): RebirthBackup {
-  return backupSchema.parse({
+  const parsed = backupSchema.parse({
     format: "rebirth-backup",
     version: 1,
     exportedAt,
     localData,
     cloudData,
   });
+  return { ...parsed, localData };
 }
 
 export function parseBackupJson(json: string): RebirthBackup {
-  return backupSchema.parse(JSON.parse(json));
+  const parsed = backupSchema.parse(JSON.parse(json));
+  return {
+    ...parsed,
+    localData: {
+      ...parsed.localData,
+      deletedBefore: parsed.localData.deletedBefore ?? null,
+    },
+  };
 }
 
 export function serializeBackupJson(backup: RebirthBackup): string {

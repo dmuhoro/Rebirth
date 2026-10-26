@@ -51,6 +51,11 @@ speech alive after screen lock.
   native package is version 1.3.2 (installed at 2026-10-26 21:24); the
   foreground/background acceptance for the changes in this sprint has not been
   repeated on that installed build.
+- **Battery & auto‑start whitelist**: On HyperOS / MIUI the foreground service
+  may be killed by the battery optimiser unless the user completes the whitelist
+  steps documented in `README.md` (Settings → Apps → Rebirth → Battery → No
+  restrictions + Auto‑start). Without these settings the service may be terminated
+  at Doze and narration will stop until the app is reopened.
 - Prior temporary APK evidence only showed that the foreground service
   remained active for 45 seconds with the screen locked. It did not verify
   audible output or taps on pause/resume/skip controls.

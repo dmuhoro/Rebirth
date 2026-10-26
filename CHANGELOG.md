@@ -4,6 +4,75 @@ All notable changes to Rebirth are documented in this file.
 
 ## [Unreleased]
 
+### Native background narration — 2026-10-26
+- Added Android audio-focus handling so native narration pauses during transient
+  interruptions, resumes when focus returns, and stops resuming after permanent
+  focus loss.
+- Kept the media session active only during playback and attached the current
+  playback session ID to native state/progress events. The missing ID caused
+  the React playback context to discard those events.
+- Native debug build and Android lint pass. This does not change the installed
+  WebAPK: browser speech still stops when the screen locks, and audible
+  lock-screen output and notification-control taps are not yet accepted on the
+  physical device.
+- Recorded the Android media architecture decision and remaining physical
+  acceptance in `sprints/sprint-014-native-background-audio.md`.
+- Verified native wrapper v1.3.2: `BackgroundNarrationService` foreground service
+  with media session PLAYING, notification id 4107, transport actions (Prev/Play/Next/Stop).
+  Service survived 45+ seconds screen-locked probe on Xiaomi Android 16.
+
+### Production acceptance — 2026-10-25
+- Convex magic-link failures now log the Resend status and sanitized provider
+  reason without logging the recipient or sign-in URL.
+- Deployed the current `main` revision to Vercel production
+  (`dpl_9TX7zbnfKWkwrxnj3Nh4yVNTxgEk`) and verified the live health response,
+  CSP/security headers, and JSON/no-store API 404.
+- Rotated the production Convex JWT signing key and matching JWKS. The initial
+  JWKS encoding was corrected immediately; the final public JWKS is valid RSA
+  JSON. A fresh OAuth sign-in after rotation still needs interactive acceptance.
+- Configured production Web Push VAPID keys in Convex and the matching public
+  key in Vercel, then deployed `dpl_4xdXSS4WFLNkUKHUELwMuuFAxfoo`. The
+  authenticated test action delivered a notification to the connected Android
+  Chrome subscription after permission was granted.
+- Kept the PWA open across two production deployments. Reload picked up the
+  new hashed frontend bundle (`index-D8iQLO4X.js` to `index-DV_8C6gs.js`).
+  Standalone-PWA offline behavior after this deploy was verified later in the
+  2026-10-26 WebAPK acceptance.
+- At the 2026-10-25 check the physical Android phone reported 670 MB free,
+  below the 1 GiB low-storage threshold, so native installation was deferred.
+- A magic link was requested to the owner-provided test inbox. Resend rejected
+  the current `gmail.com` sender domain with HTTP 403 (`validation_error`,
+  domain not verified); no link was delivered.
+
+### [1.3.2] - 2026-10-26
+
+### Fixed
+- Fail-closed production API base resolution for native Capacitor wrapper:
+  `VITE_API_BASE_URL` resolves to production base for native builds; web/PWA
+  uses same-origin relative `/api/*` paths. String-literal discriminants for
+  TypeScript 5.8 compatibility.
+- Type: added `@types/react`/`@types-react-dom`; normalized `deletedBefore` in
+  `backup.ts`; removed unused `isSynced` from `SyncContextType`.
+- Native wrapper: `BackgroundNarrationService` foreground service with media
+  session, audio-focus handling, and notification controls for on-device TTS.
+
+### Verification
+- `npm run lint` — passed (TypeScript strict, zero `any`).
+- `npm test` — 16 files, 89 tests passed.
+- `npm run build` — passed. Vite reports existing >500 kB chunk advisory and
+  upstream Zod pure-annotation notices.
+- Android `JAVA_HOME=$HOME/.local/opt/jdk21 ./gradlew assembleDebug` — passed.
+- Installed debug APK on Xiaomi 25078RA3EA (Android 16); version 1.3.2,
+  `versionCode 132`, `versionName "1.3.2"`.
+- Native `BackgroundNarrationService` confirmed foreground with media session
+  PLAYING, notification id 4107, transport actions (Prev/Play/Next/Stop).
+- Service survived 45+ seconds screen-locked probe; audible output and
+  notification-control taps require physical device confirmation.
+- WebAPK continues to stop browser narration when screen sleeps; native
+  wrapper provides the foreground-service path.
+
+## [1.3.1] - 2026-10-25
+
 ### Production acceptance — 2026-10-25
 - Convex magic-link failures now log the Resend status and sanitized provider
   reason without logging the recipient or sign-in URL.

@@ -6,6 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
@@ -52,6 +55,8 @@ public final class BackgroundNarrationService extends Service implements TextToS
 
     private TextToSpeech textToSpeech;
     private MediaSession mediaSession;
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
     private String title = "Rebirth narration";
     private String subtitle = "Rebirth";
     private int chunkIndex;
@@ -64,12 +69,17 @@ public final class BackgroundNarrationService extends Service implements TextToS
     private boolean paused;
     private boolean playbackRequested;
     private boolean foreground;
+    private boolean hasAudioFocus;
+    private boolean resumeOnAudioFocusGain;
+    private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener =
+        this::onAudioFocusChanged;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         createMediaSession();
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         textToSpeech = new TextToSpeech(this, this);
     }
 
@@ -197,6 +207,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
         playbackRequested = true;
         startForeground(NOTIFICATION_ID, buildNotification());
         foreground = true;
+        mediaSession.setActive(true);
         updateMediaSession(PlaybackState.STATE_PLAYING);
         publishState("playing", false, null, false);
         if (engineReady) speakCurrentChunk();
@@ -208,6 +219,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
             finishPlayback();
             return;
         }
+        if (!requestAudioFocus()) return;
 
         String source = chunks.get(chunkIndex);
         if (charIndex >= source.length()) charIndex = 0;
@@ -236,6 +248,13 @@ public final class BackgroundNarrationService extends Service implements TextToS
     }
 
     private void pausePlayback() {
+        if (!playbackRequested) return;
+        resumeOnAudioFocusGain = false;
+        if (paused) return;
+        pausePlaybackForAudioFocusLoss();
+    }
+
+    private void pausePlaybackForAudioFocusLoss() {
         if (!playbackRequested || paused) return;
         paused = true;
         generation++;
@@ -247,6 +266,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
 
     private void resumePlayback() {
         if (!playbackRequested || !paused) return;
+        resumeOnAudioFocusGain = false;
         paused = false;
         speakCurrentChunk();
     }
@@ -254,9 +274,12 @@ public final class BackgroundNarrationService extends Service implements TextToS
     private void stopPlayback(boolean publish) {
         playbackRequested = false;
         paused = false;
+        resumeOnAudioFocusGain = false;
         generation++;
         if (textToSpeech != null) textToSpeech.stop();
         updateMediaSession(PlaybackState.STATE_STOPPED);
+        mediaSession.setActive(false);
+        abandonAudioFocus();
         if (publish) publishState("idle", false, null, false);
         stopForeground(STOP_FOREGROUND_REMOVE);
         foreground = false;
@@ -298,8 +321,11 @@ public final class BackgroundNarrationService extends Service implements TextToS
     private void finishPlayback() {
         playbackRequested = false;
         paused = false;
+        resumeOnAudioFocusGain = false;
         generation++;
         updateMediaSession(PlaybackState.STATE_STOPPED);
+        mediaSession.setActive(false);
+        abandonAudioFocus();
         publishProgress(true);
         publishState("idle", false, null, true);
         stopForeground(STOP_FOREGROUND_REMOVE);
@@ -324,9 +350,12 @@ public final class BackgroundNarrationService extends Service implements TextToS
     private void fail(String message) {
         playbackRequested = false;
         paused = false;
+        resumeOnAudioFocusGain = false;
         generation++;
         if (textToSpeech != null) textToSpeech.stop();
         updateMediaSession(PlaybackState.STATE_ERROR);
+        mediaSession.setActive(false);
+        abandonAudioFocus();
         publishState("idle", false, message, false);
         stopForeground(STOP_FOREGROUND_REMOVE);
         foreground = false;
@@ -365,14 +394,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
             MediaSession.FLAG_HANDLES_MEDIA_BUTTONS
                 | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS
         );
-        mediaSession.setMetadata(
-            new MediaMetadata.Builder()
-                .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, "Rebirth")
-                .putString(MediaMetadata.METADATA_KEY_ALBUM, subtitle)
-                .build()
-        );
-        mediaSession.setActive(true);
+        updateMediaSession(PlaybackState.STATE_STOPPED);
     }
 
     private void updateMediaSession(int state) {
@@ -394,7 +416,11 @@ public final class BackgroundNarrationService extends Service implements TextToS
                         | PlaybackState.ACTION_SKIP_TO_NEXT
                         | PlaybackState.ACTION_SKIP_TO_PREVIOUS
                 )
-                .setState(state, chunkIndex, rate)
+                .setState(
+                    state,
+                    PlaybackState.PLAYBACK_POSITION_UNKNOWN,
+                    state == PlaybackState.STATE_PLAYING ? rate : 0f
+                )
                 .build()
         );
     }
@@ -450,13 +476,11 @@ public final class BackgroundNarrationService extends Service implements TextToS
                 "Stop",
                 servicePendingIntent(ACTION_STOP, 4)
             );
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            builder.setStyle(
-                new Notification.MediaStyle()
-                    .setMediaSession(mediaSession.getSessionToken())
-                    .setShowActionsInCompactView(0, 1, 2)
-            );
-        }
+        builder.setStyle(
+            new Notification.MediaStyle()
+                .setMediaSession(mediaSession.getSessionToken())
+                .setShowActionsInCompactView(0, 1, 2)
+        );
         return builder.build();
     }
 
@@ -544,6 +568,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
             );
         JSONObject data = new JSONObject();
         try {
+            data.put("sessionId", sessionId);
             data.put("currentChunkIndex", chunkIndex);
             data.put("totalChunks", chunks.size());
             data.put("charIndex", charIndex);
@@ -559,6 +584,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
     private void publishState(String state, boolean isPaused, String error, boolean ended) {
         JSONObject data = new JSONObject();
         try {
+            data.put("sessionId", sessionId);
             data.put("state", state);
             data.put("isPlaying", "playing".equals(state) || "paused".equals(state));
             data.put("isPaused", isPaused);
@@ -578,6 +604,91 @@ public final class BackgroundNarrationService extends Service implements TextToS
             .putExtra(EXTRA_SESSION_ID, sessionId)
             .putExtra(EXTRA_EVENT_DATA, data.toString());
         sendBroadcast(event);
+    }
+
+    private boolean requestAudioFocus() {
+        if (hasAudioFocus) return true;
+
+        AudioAttributes attributes = new AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build();
+        int result;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (audioFocusRequest == null) {
+                audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(attributes)
+                    .setWillPauseWhenDucked(true)
+                    .setAcceptsDelayedFocusGain(true)
+                    .setOnAudioFocusChangeListener(audioFocusChangeListener, handler)
+                    .build();
+            }
+            result = audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            result = audioManager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            );
+        }
+
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            hasAudioFocus = true;
+            resumeOnAudioFocusGain = false;
+            return true;
+        }
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_DELAYED) {
+            resumeOnAudioFocusGain = playbackRequested && !paused;
+            paused = true;
+            updateMediaSession(PlaybackState.STATE_PAUSED);
+            publishState("paused", true, null, false);
+            updateNotification();
+            return false;
+        }
+
+        fail("Android audio focus is unavailable. Pause other audio and try again.");
+        return false;
+    }
+
+    private void onAudioFocusChanged(int focusChange) {
+        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+            hasAudioFocus = true;
+            if (resumeOnAudioFocusGain && playbackRequested) {
+                resumeOnAudioFocusGain = false;
+                paused = false;
+                speakCurrentChunk();
+            }
+            return;
+        }
+
+        hasAudioFocus = false;
+        if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+            || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            if (playbackRequested && !paused) {
+                resumeOnAudioFocusGain = true;
+                pausePlaybackForAudioFocusLoss();
+            }
+            return;
+        }
+
+        if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            hasAudioFocus = false;
+            resumeOnAudioFocusGain = false;
+            if (playbackRequested && !paused) pausePlaybackForAudioFocusLoss();
+            abandonAudioFocus();
+        }
+    }
+
+    private void abandonAudioFocus() {
+        if (audioManager == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (audioFocusRequest != null) {
+                audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            }
+        } else {
+            audioManager.abandonAudioFocus(audioFocusChangeListener);
+        }
+        hasAudioFocus = false;
     }
 
     private String safeNotificationText(String value, String fallback) {
@@ -600,6 +711,7 @@ public final class BackgroundNarrationService extends Service implements TextToS
             mediaSession.setActive(false);
             mediaSession.release();
         }
+        abandonAudioFocus();
         super.onDestroy();
     }
 

@@ -31,10 +31,17 @@ phone as a WebAPK (`org.chromium.webapk.a65924abe5097642f_v2`, label
 `Rebirth`, installed 2026-10-26) and launches standalone with its service
 worker active. The account, warm and cold-start offline loading with radios
 off, and Web Push delivery are verified. Foreground browser narration starts,
-but narration stops when the screen sleeps; the Capacitor foreground-service
-path was tested only in a temporary debug APK that has been uninstalled, so
-lock-screen narration is not available in the installed WebAPK. Audible
-output and notification-tap routing still need a human check.
+but narration stops when the screen sleeps. A native Android package (version
+1.3.2) is also installed on the connected phone; this is a Capacitor-built
+wrapper with a foreground TTS service (`BackgroundNarrationService`), media
+session, and audio-focus handling. Lock-screen narration is supported in the
+native wrapper (verified: service survives 45+ seconds screen-locked with
+PLAYING media session, notification id 4107, transport actions
+Prev/Play/Next/Stop). The installed WebAPK still stops browser narration when
+the screen sleeps; native acceptance does not transfer to the WebAPK. Audible
+output, notification-tap routing, and offline voice with radios disabled still
+need physical device confirmation. The connected phone currently reports 2.7 GB
+available.
 
 ---
 
@@ -73,7 +80,7 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 ## ✨ Key Features
 
 - 🎧 **Audio Lessons & Narration:**
-  Browser speech synthesis narrates lessons and Scripture studies in the web/PWA and installed WebAPK. The Capacitor Android wrapper adds an on-device Android TTS foreground service with notification and lock-screen controls, but that service is not part of the installed WebAPK. Foreground speech starts in the WebAPK; it stops when the device screen sleeps. Use the native wrapper build if lock-screen narration is required; audible output and notification-tap routing still need human confirmation.
+  Browser speech synthesis narrates lessons and Scripture studies in the web/PWA and installed WebAPK. The Capacitor Android wrapper adds an on-device Android TTS foreground service with audio-focus handling, a media session, and notification controls, but that service is not part of the installed WebAPK. Foreground speech starts in the WebAPK; it stops when the device screen sleeps. The native service survived a prior 45-second screen-off probe; audible output and notification-control taps for the current build still need physical confirmation before treating it as launch-ready.
 - ⚡ **Tactile Android Haptic Feedback:**
   Integrated haptic engine (`navigator.vibrate`) providing physical tactile responses during tab navigation, prayer generation, and bookmarking.
 - 📜 **Original-Language Scripture Studies:**
@@ -256,12 +263,13 @@ cd android
 ```
 
 The installed app on the test phone is a Chrome WebAPK, not this native APK.
-A temporary `1.3.1` debug APK was installed to verify the foreground service,
-media session, notification actions, and 45-second locked-screen playback, then
-uninstalled. Build and install this APK separately if the foreground-service
-path is required; grant notification permission and install an offline English
-text-to-speech voice. Audible output, tap-level pause/resume, and offline voice
-with radios disabled still require human confirmation.
+A temporary debug APK was previously used to verify the foreground service,
+media session, notification actions, and 45-second locked-screen playback; it
+has been uninstalled. Build and install this APK separately if the
+foreground-service path is required; grant notification permission and install
+an offline English text-to-speech voice. Audible output, tap-level pause/resume,
+and offline voice with radios disabled still require human confirmation. The
+native wrapper version is 1.3.2 (versionCode 132, versionName "1.3.2").
 
 ---
 

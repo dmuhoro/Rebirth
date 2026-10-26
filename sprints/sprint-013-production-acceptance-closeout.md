@@ -1,6 +1,6 @@
 # Sprint 013 — Production Acceptance Closeout
 
-Date: 2026-10-25
+Date: 2026-10-25; updated 2026-10-26
 
 ## Completed
 
@@ -24,6 +24,12 @@ Date: 2026-10-25
   mobile data and confirmed the page remained offline (`navigator.onLine=false`)
   while cached lesson content was present. Connectivity was restored after
   the test.
+- Installed Rebirth as a Chrome WebAPK
+  (`org.chromium.webapk.a65924abe5097642f_v2`, label `Rebirth`, installed
+  2026-10-26 19:12). It launches standalone with `/sw.js` active; the account
+  persisted, warm and cold-start offline loading passed, and an FCM push
+  subscription received the production test notification. Foreground TTS
+  starts, but narration stops when the screen sleeps.
 - Google sign-in completed in the integrated browser after JWT rotation; the
   Android account panel also remained connected after reload.
 - The production PWA page was held open across two deployments and loaded a
@@ -42,17 +48,17 @@ Date: 2026-10-25
   HTTP 403 (`validation_error`) because the configured sender domain is
   `gmail.com`, which Resend does not verify for sending. Configure
   `EMAIL_FROM` on a verified domain and repeat the send-and-click flow.
-- **Native Android:** the connected phone reports 670 MB free versus Android's
-  1 GiB low-storage threshold. No Rebirth WebAPK is installed. Install the
-  native APK only after at least 1.2 GB is available, then test offline voice,
-  foreground-service controls, and narration with the screen securely locked.
-- Chrome's PWA install chooser was opened, but no Rebirth WebAPK package
-  appeared afterward; standalone installation is not accepted as complete.
-- **Standalone PWA:** Chrome-tab offline content and cross-deployment reload
-  were verified. Standalone-WebAPK installation and offline behavior remain
-  unverified on this phone.
+- **Lock-screen narration:** the installed WebAPK starts foreground browser
+  speech but stops when the screen sleeps (after 45 seconds: `speaking=false`,
+  page hidden). A temporary native APK probe showed the foreground
+  `BackgroundNarrationService` survives 45 seconds, but that APK was uninstalled
+  and the Capacitor service is not part of the WebAPK. If lock-screen narration
+  is required, ship and install the native wrapper and repeat acceptance.
+- **Human device checks:** confirm foreground narration is audible and tap the
+  delivered notification to verify it opens Rebirth.
 
-No device data was deleted. Native Android installation and lock-screen
-narration remain blocked by storage. A build, HTTP probe, or configured provider
-is not reported as a substitute for user-visible delivery or physical-device
-testing.
+No device data was deleted. WebAPK installation, standalone launch, account,
+warm/cold offline loading, and Web Push delivery are verified. Lock-screen
+narration is not available in the WebAPK; it requires the native wrapper. A
+build, HTTP probe, or configured provider is not reported as a substitute for
+user-visible delivery or physical-device testing.

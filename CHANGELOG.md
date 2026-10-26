@@ -19,13 +19,56 @@ All notable changes to Rebirth are documented in this file.
   Chrome subscription after permission was granted.
 - Kept the PWA open across two production deployments. Reload picked up the
   new hashed frontend bundle (`index-D8iQLO4X.js` to `index-DV_8C6gs.js`).
-  Standalone-PWA offline behavior after this deploy remains unverified.
-- The physical Android phone reports 670 MB free, below the 1 GiB low-storage
-  threshold. Native APK installation and lock-screen narration acceptance
-  remain blocked.
+  Standalone-PWA offline behavior after this deploy was verified later in the
+  2026-10-26 WebAPK acceptance.
+- At the 2026-10-25 check the physical Android phone reported 670 MB free,
+  below the 1 GiB low-storage threshold, so native installation was deferred.
 - A magic link was requested to the owner-provided test inbox. Resend rejected
   the current `gmail.com` sender domain with HTTP 403 (`validation_error`,
   domain not verified); no link was delivered.
+
+### Native Android probe — 2026-10-26 (temporary)
+- A temporary debug build was used for the foreground-service probe recorded
+  here. It was uninstalled afterward and is not the installed app.
+- The connected Xiaomi 25078RA3EA reported 4.2 GB free. APK `1.3.1`
+  (`targetSdk 36`) installed with `adb install -r` and launched; guest mode
+  rendered the lesson list.
+- `Listen (TTS)` started `BackgroundNarrationService` as a foreground media
+  service (notification id `4107`, Pause/Previous/Next/Stop actions) and a
+  `RebirthNarration` media session in `PLAYING` state.
+- With the screen confirmed off (`mWakefulness=Asleep`,
+  `mIsScreenOn=false`), the service and media session remained active after
+  45 seconds and Google TTS continued rendering its on-device `en-GB` voice.
+  The earlier browser screen-off stop at 35 seconds did not recur on the
+  native path.
+- A media STOP command while locked stopped the service and cleared the
+  notification. Audible output, notification pause/resume taps, and offline
+  voice with radios disabled still need human perception and tap-level checks.
+- `npm run lint`, `npx tsc -p convex/tsconfig.json --noEmit`, `npm test`
+  (15 files, 80 tests), `npm run build`, and Android `lintDebug` pass.
+- The temporary APK was uninstalled after this probe. Its locked-screen
+  evidence does not transfer to the WebAPK.
+
+### WebAPK acceptance — 2026-10-26
+- Installed Rebirth from Chrome's "Install and create shortcut" flow as a
+  Chrome WebAPK: package `org.chromium.webapk.a65924abe5097642f_v2`,
+  label `Rebirth`, `firstInstallTime` and `lastUpdateTime` 2026-10-26 19:12.
+  It launches in standalone display mode with `/sw.js` controlling the page.
+- The signed-in account persisted (Convex auth tokens present; the account
+  panel reports "Account connected"; Qavah progress remains 100%).
+- Web Push is active in the WebAPK: notification permission granted, an FCM
+  subscription created, and the production test notification reported "sent
+  to 1 device(s)" and posted by the WebAPK package by Android's notification
+  manager.
+- Warm offline reload and cold start (Chrome force-stopped, Wi-Fi and mobile
+  data disabled) both rendered cached daily content with
+  `navigator.onLine=false`; connectivity was restored afterward.
+- Foreground `Listen (TTS)` set `speechSynthesis.speaking=true` with 92 voices.
+  After 45 seconds with the screen off, speech had stopped and the page was
+  hidden. WebAPK narration does not survive screen lock; the Capacitor
+  foreground service cannot be used by the WebAPK. Lock-screen narration
+  requires the native wrapper build.
+- Audible output confirmation and notification-tap routing remain human checks.
 
 ## [1.3.1] - 2026-10-25
 
@@ -49,14 +92,14 @@ All notable changes to Rebirth are documented in this file.
 - Native `:app:assembleDebug` succeeds with the full JDK 21 at
   `~/.local/opt/jdk21`; the 4.4 MB APK has `versionName 1.3.1` and
   `targetSdk 36`. The connected Android phone had 331 MB free against
-  Android's 1 GiB low-storage threshold, so native installation and
-  lock-screen acceptance remain blocked.
+  Android's 1 GiB low-storage threshold, so installation was deferred at that
+  time; it was later probed with a temporary APK and removed.
 
 ## [1.3.0] - 2026-10-25
 
 ### Added — Native Android narration path
 - Capacitor Android bridge routes narration, progress, and playback controls to an Android foreground TextToSpeech service while web/PWA playback retains browser speech synthesis.
-- Android playback requires notification permission and an installed offline English voice; physical-device lock-screen acceptance remains pending.
+- Android playback requires notification permission and an installed offline English voice; the foreground-service path was later probed on a temporary APK. The installed WebAPK does not include it.
 
 ### Security — Sprint 012 web production hardening
 - The Gemini daily spend cap now reserves budget before every provider call, fails closed on invalid configuration, skips charging for crisis and missing-key responses, and returns `503 SPEND_CAP_REACHED` when exhausted. `GEMINI_DAILY_SPEND_CAP_USD` and `GEMINI_ESTIMATED_REQUEST_COST_USD` are configurable.
@@ -75,10 +118,10 @@ All notable changes to Rebirth are documented in this file.
 
 ### Verification — Sprint 011 P0 launch acceptance
 - Redeployed `main` commit `7093a9c` to Vercel production (`dpl_2sXBBFUfGMNqgKDKctVUiumz9UTs`, READY) and confirmed the live health endpoint.
-- Installed the production PWA on a connected Android phone; service worker controlled the installed app, and a simulated offline reload opened cached devotional content in guest mode.
-- Android standalone PWA and service-worker control were confirmed. The developer confirms foreground audio is audible. In a screen-off/background check (without a verified secure lock), speech was active before backgrounding but reported stopped after 35 seconds; no Rebirth Android media session appeared.
+- Installed the production PWA on a connected Android phone; service worker controlled the installed app, and a simulated offline reload opened cached devotional content in guest mode. At the time this was a Chrome home-screen web app; on 2026-10-26 it was replaced by a server-minted WebAPK.
+- Android standalone PWA and service-worker control were confirmed. The developer confirms foreground audio is audible. In a screen-off/background check (without a verified secure lock), speech was active before backgrounding but reported stopped after 35 seconds; the 2026-10-26 WebAPK acceptance reproduced the stop at 45 seconds. No Rebirth Android media session appeared.
 - Google OAuth reached Google's account page, which rejected the embedded sign-in browser because JavaScript was unsupported or disabled. Authentication must be retried in a supported external browser. Two-client Convex backup/restore was not run because neither client was authenticated; no account data was created or changed.
-- Native Android implementation has since been integrated with the playback context. Web TypeScript check, 64 tests, and web production build pass. APK compilation is blocked by the available Java 21 runtime lacking `jlink`/`jmod`; JDK 17 tooling cannot process Android API 36's Java 21 module descriptor. ADB currently sees an Android 16 phone, but the native APK has not yet been installed or tested.
+- Native Android implementation was later compiled with the full JDK 21 toolchain. A temporary `1.3.1` APK was installed for the foreground-service probe and removed afterward; the installed app is the WebAPK. The earlier compilation block does not apply to the current toolchain.
 
 ## [1.2.0] - 2026-10-24
 

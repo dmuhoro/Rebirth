@@ -24,11 +24,17 @@ backed up and restored on desktop. The test entry is absent from both clients
 and cloud; existing lesson progress was preserved. Gemini is not configured
 in production (`hasApiKey: false`), so counsel uses the deterministic
 theological fallback rather than a live model. Web Push was configured and a
-test notification reached Android Chrome. Magic-link delivery is blocked
-because Resend rejects the current `gmail.com` sender domain as unverified.
-Native Android narration builds, but lock-screen playback is not yet
-device-verified; the connected phone currently reports 670 MB free, below
-Android's 1 GiB low-storage threshold for installing the APK.
+test notification reached Android Chrome and the installed Rebirth WebAPK.
+Magic-link delivery is blocked because Resend rejects the current `gmail.com`
+sender domain as unverified. Rebirth is installed on the connected Android 16
+phone as a WebAPK (`org.chromium.webapk.a65924abe5097642f_v2`, label
+`Rebirth`, installed 2026-10-26) and launches standalone with its service
+worker active. The account, warm and cold-start offline loading with radios
+off, and Web Push delivery are verified. Foreground browser narration starts,
+but narration stops when the screen sleeps; the Capacitor foreground-service
+path was tested only in a temporary debug APK that has been uninstalled, so
+lock-screen narration is not available in the installed WebAPK. Audible
+output and notification-tap routing still need a human check.
 
 ---
 
@@ -67,7 +73,7 @@ Every lesson, scripture study, prayer prompt, and AI pastoral model is permanent
 ## ✨ Key Features
 
 - 🎧 **Audio Lessons & Narration:**
-  Browser speech synthesis narrates lessons and Scripture studies in the web/PWA. The Capacitor Android app includes an on-device Android TTS foreground service with notification and lock-screen controls. The native path requires an installed offline English voice and is awaiting physical-device acceptance; browser speech may stop when the device locks.
+  Browser speech synthesis narrates lessons and Scripture studies in the web/PWA and installed WebAPK. The Capacitor Android wrapper adds an on-device Android TTS foreground service with notification and lock-screen controls, but that service is not part of the installed WebAPK. Foreground speech starts in the WebAPK; it stops when the device screen sleeps. Use the native wrapper build if lock-screen narration is required; audible output and notification-tap routing still need human confirmation.
 - ⚡ **Tactile Android Haptic Feedback:**
   Integrated haptic engine (`navigator.vibrate`) providing physical tactile responses during tab navigation, prayer generation, and bookmarking.
 - 📜 **Original-Language Scripture Studies:**
@@ -249,11 +255,13 @@ cd android
 ./gradlew assembleDebug
 ```
 
-Install the generated debug APK from `android/app/build/outputs/apk/debug/`
-on an Android device. Grant notification permission and ensure an offline
-English text-to-speech voice is installed to use background narration. The
-foreground service, notification, lock-screen, and offline-voice behavior
-must be verified on a physical device before relying on it.
+The installed app on the test phone is a Chrome WebAPK, not this native APK.
+A temporary `1.3.1` debug APK was installed to verify the foreground service,
+media session, notification actions, and 45-second locked-screen playback, then
+uninstalled. Build and install this APK separately if the foreground-service
+path is required; grant notification permission and install an offline English
+text-to-speech voice. Audible output, tap-level pause/resume, and offline voice
+with radios disabled still require human confirmation.
 
 ---
 
@@ -265,9 +273,10 @@ guardrails, curriculum, journeys, haptics, daily contemplation, backup
 integrity, streak calculation, spaced repetition, API security headers, the
 spend cap, the real `public/sw.js` cache policy (executed in a VM), CSP
 consistency between the server and Vercel, and accessibility contracts.
-PWA installation, offline startup after a deploy, notifications, OAuth, and
-native background audio still require browser/device and configured-provider
-acceptance checks.
+WebAPK installation, warm and cold-start offline loading, notifications, and
+OAuth are verified on device. Lock-screen narration is not available in the
+WebAPK and requires the native wrapper build. Audible output, notification-tap
+routing, and email magic-link delivery still need human/provider checks.
 
 ---
 
